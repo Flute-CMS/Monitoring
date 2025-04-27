@@ -102,6 +102,8 @@ class ServersMonitorService
             'ip' => $server->ip,
             'port' => $server->port,
             'serverName' => $server->name,
+            'serverMod' => $server->mod,
+            'serverHostName' => 'Server is Offline',
             'displayIp' => $server->display_ip,
             'status' => 'offline',
             'info' => [
@@ -109,7 +111,7 @@ class ServersMonitorService
                 'Players' => '-',
                 'MaxPlayers' => '-',
                 'Map' => 'monitoring.no_map',
-                'Map_img' => $this->getMapImg($server->mod, '-'),
+                'Map_img' => $this->getMapImg($server->mod, '', '-'),
                 'Map_pin' => $this->getMapPin('_'),
                 'HostName' => 'monitoring.info.server_is_shutdown',
                 'HostName_replace' => $server->name,
@@ -128,6 +130,8 @@ class ServersMonitorService
             'info' => $info,
             'players' => $players,
             'serverName' => $server->name,
+            'serverMod' => $server->mod,
+            'serverHostName' => $info['HostName'],
             'displayIp' => $server->display_ip,
             'status' => 'online',
         ];
@@ -135,8 +139,9 @@ class ServersMonitorService
         $serverResult['info']['HostName_replace'] = $server->name;
         $serverResult['info']['percentOnline'] = $this->getPercentName($info['Players'], $info['MaxPlayers']);
 
+        if ($info['ModDir'] == "cstrike") { $info['ModDir'] = "cs"; }
         if (isset($info['Map'])) {
-            $serverResult['info']['Map_img'] = $this->getMapImg($server->mod, $info['Map']);
+            $serverResult['info']['Map_img'] = $this->getMapImg($server->mod, $info['ModDir'], strtolower($info['Map']));
             $serverResult['info']['Map_pin'] = $this->getMapPin($info['Map']);
         }
 
@@ -170,14 +175,15 @@ class ServersMonitorService
         return 'assets/img/pins/_.webp';
     }
 
-    protected function getMapImg(string $mod, string $map): string
+    protected function getMapImg(string $mod, string $moddir, string $map): string
     {
         $mapPath = sprintf("%s/public/assets/img/maps/%s/%s.webp", BASE_PATH, $mod, $map);
         if (file_exists($mapPath)) {
-            return str_replace(BASE_PATH . '/public/', '', $mapPath);
+            $mapPath = str_replace(BASE_PATH . '/public/', '', $mapPath);
+        } else {
+            $mapPath = sprintf('https://image.gametracker.com/images/maps/160x120/%s/%s.jpg', $moddir, $map);
         }
-
-        return sprintf('assets/img/maps/%s/-.webp', $mod);
+		return $mapPath;
     }
 
     public function findServer(int $serverId): array
