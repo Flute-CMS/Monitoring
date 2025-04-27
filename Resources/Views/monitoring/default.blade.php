@@ -5,7 +5,8 @@
         @foreach ($servers as $item)
             <div class="col-md-4">
                 <div class="monitoring_card">
-                    <img src="@asset($item['info']['Map_img'])" alt="{{ $item['serverName'] }}">
+                    <!-- <img src="@asset($item['info']['Map_img'])"alt="{{ $item['serverName'] }}"> -->
+                    <img src="{{$item['info']['Map_img']}}" onerror="this.src='assets/img/maps/{{ $item['serverMod'] }}/-.webp';"  alt="{{ $item['serverName'] }}">
 
                     <div class="monitoring_card-content">
                         <div>
@@ -13,6 +14,8 @@
                                 @t('monitoring.info.server_is_shutdown')
                             @else
                                 {{ $item['serverName'] }}
+							<br>
+                                {{ $item['serverHostName'] }}
                             @endif
                         </div>
                         <div>
