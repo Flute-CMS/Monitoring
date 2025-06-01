@@ -1,13 +1,12 @@
 {
-    "name": "Monitoring SOURCE module",
-    "version": "1.2.2",
-    "description": "Provides a game info status of players on each added server working SOURCE engine",
+    "name": "Monitoring",
+    "version": "1.0.0",
+    "description": "Module for monitoring the servers",
     "authors": [
-        "Flames",
-        "Armatura"
+        "Flames"
     ],
     "providers": [
-        "Flute\\Modules\\Source_Monitoring\\src\\ServiceProviders\\MonitoringServiceProvider"
+        "Flute\\Modules\\Monitoring\\Providers\\MonitoringProvider"
     ],
     "dependencies": {}
 }

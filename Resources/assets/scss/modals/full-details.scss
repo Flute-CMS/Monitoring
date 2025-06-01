@@ -1,0 +1,328 @@
+.csgo-details {
+    position: relative;
+    overflow: hidden;
+
+    @include media(pc) {
+        min-width: 800px;
+    }
+
+    .csgo-header {
+        position: relative;
+        margin-bottom: 1.5em;
+        overflow: hidden;
+        border-radius: var(--border1);
+        height: 190px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+
+        .csgo-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                object-position: center;
+                transition: transform 0.5s ease;
+
+                &:hover {
+                    transform: scale(1.05);
+                }
+            }
+
+            .csgo-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.9) 100%);
+                z-index: 1;
+            }
+        }
+
+        .csgo-team-scores {
+            @extend .blur-bg;
+
+            border-radius: var(--border1);
+            border: 1px solid var(--transp-1);
+            padding: var(--space-xs) var(--space-md);
+            background-color: var(--blurred-background);
+            position: absolute;
+            top: 1em;
+            right: 1em;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+
+            .csgo-team-score {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+
+                .team-icon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: var(--h5);
+
+                    svg {
+                        width: 1.2em;
+                        height: 1.2em;
+                    }
+                }
+
+                .score-value {
+                    font-weight: 700;
+                    font-size: var(--h5);
+                }
+
+                &.ct .score-value {
+                    color: #2196F3;
+                }
+
+                &.t .score-value {
+                    color: #FFC107;
+                }
+            }
+
+            .score-divider {
+                color: var(--text-400);
+                font-weight: 600;
+                padding: 0 0.2em;
+            }
+        }
+
+        .csgo-header-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            flex-direction: column;
+            padding: 1.5em;
+            height: 100%;
+
+            @include media(mobile) {
+                flex-direction: column;
+                justify-content: flex-start;
+                gap: 1em;
+            }
+
+            .csgo-header-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5em;
+
+                .csgo-server-name {
+                    font-size: var(--h3);
+                    font-weight: 700;
+                    color: #fff;
+                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+                    margin-bottom: 0.2em;
+                }
+
+                .csgo-server-map,
+                .csgo-server-ip,
+                .csgo-server-status,
+                .csgo-server-players {
+                    @extend .blur-bg;
+
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5em;
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: var(--p-small);
+                    border: 1px solid var(--transp-1);
+                    border-radius: var(--border05);
+                    padding: var(--space-xs) var(--space-md);
+                    width: fit-content;
+                }
+
+                .csgo-server-status {
+                    .csgo-status-indicator {
+                        width: 0.55em;
+                        height: 0.55em;
+                        border-radius: 50%;
+                        box-shadow: 0 0 8px var(--success);
+                        background-color: var(--success);
+                    }
+                }
+
+                .csgo-server-ip {
+                    cursor: pointer;
+                    transition: var(--transition);
+
+                    &:hover {
+                        color: var(--accent);
+                        background-color: var(--transp-05);
+                    }
+                }
+            }
+        }
+    }
+
+    .csgo-players {
+        .csgo-players-table-wrapper {
+            background-color: var(--transp-05);
+            border-radius: var(--border05);
+            border: 1px solid var(--transp-1);
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: var(--small);
+
+            @include media(mobile) {
+                overflow: auto;
+            }
+
+            .csgo-players-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+
+                th,
+                td {
+                    padding: 0.7em 1em;
+                    text-align: left;
+                }
+
+                th {
+                    position: sticky;
+                    top: 0;
+                    background-color: var(--background);
+                    font-weight: 600;
+                    color: var(--text-400);
+                    font-size: var(--small);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    z-index: 1;
+                }
+
+                .player-rank {
+                    width: 100%;
+                    height: 30px;
+
+                    img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: contain;
+                    }
+                }
+
+                .player-faceit-rank {
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    margin-right: 0.25em;
+                    flex-shrink: 0;
+
+                    img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: contain;
+                    }
+                }
+
+                .player-avatar {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    margin-right: 0.5em;
+                    flex-shrink: 0;
+
+                    img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                    }
+                }
+
+                .player-info>a {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5em;
+                    width: fit-content;
+
+                    .player-name {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5em;
+                        font-weight: 500;
+                        color: var(--text-200);
+                        max-width: 180px;
+                        font-size: var(--p-small);
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+
+                        .prime-indicator {
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            width: var(--p);
+                            height: var(--p);
+
+                            &.prime {
+                                color: var(--success);
+                            }
+
+                            &.non-prime {
+                                color: var(--error);
+                            }
+
+                            svg {
+                                fill: currentColor;
+                                width: 100%;
+                                height: 100%;
+                            }
+                        }
+                    }
+                }
+
+                .player-ping {
+                    .ping-value {
+                        font-size: var(--h4);
+                        display: flex;
+                        width: fit-content;
+                        margin: 0 auto;
+
+                        &.good {
+                            color: var(--success);
+                        }
+
+                        &.medium {
+                            color: var(--warning);
+                        }
+
+                        &.bad {
+                            color: var(--error);
+                        }
+                    }
+                }
+
+                tbody tr {
+                    transition: var(--transition);
+                    border-bottom: 1px solid var(--transp-05);
+
+                    &:last-child {
+                        border-bottom: none;
+                    }
+
+                    &.ct-row {
+                        background: linear-gradient(to right, rgba(33, 149, 243, 0.1), transparent, transparent);
+                    }
+
+                    &.t-row {
+                        background: linear-gradient(to right, rgba(255, 193, 7, 0.1), transparent, transparent);
+                    }
+                }
+            }
+        }
+    }
+}

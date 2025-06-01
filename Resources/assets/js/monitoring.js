@@ -1,107 +1,79 @@
-function showInfoModal(serverId) {
-    $('.modal-info').addClass('opened');
-    document.body.style.overflow = 'hidden';
-    setLoadingState(true);
-    updateInfoModalData(serverId, false);
-}
+function initializePlayerSearch() {
+    const serverDetailsModals = document.querySelectorAll('.server-details, .cs2-details');
 
-function setLoadingState(isLoading) {
-    if (isLoading) {
-        $('#map_name').text('-----');
-        $('#table-body-players').empty();
-        for (let i = 0; i < 5; i++) {
-            $('#table-body-players').append(
-                '<div class="div-table-row skeleton"></div>',
-            );
-        }
-    } else {
-        $('.img-bg-container').removeClass('skeleton');
-    }
-}
+    serverDetailsModals.forEach((modal) => {
+        const searchInput = modal.querySelector(
+            '.server-details-players-search-input',
+        );
+        if (!searchInput) return;
 
-function updateInfoModalData(serverId, force) {
-    $.ajax({
-        url: u(
-            `source_monitoring/api/info?server_id=${serverId}&force=${force}`,
-        ),
-        type: 'GET',
-        dataType: 'json',
-        success: function (response) {
-            setLoadingState(false);
+        const tableBodyElement = modal.querySelector(
+            '[id^="playerTableBody-"]',
+        );
+        if (!tableBodyElement) return;
 
-            const info = response.info;
-            const serverName = response.serverName;
-            const players = response.players;
+        const serverId = tableBodyElement.id.split('-')[1];
+        const playerRows = modal.querySelectorAll('.player-row');
+        const tableBody = document.getElementById(
+            `playerTableBody-${serverId}`,
+        );
+        const noPlayersFound = document.getElementById(
+            `noPlayersFound-${serverId}`,
+        );
 
-            $('#img_bg_modal').attr('src', u(info.Map_img));
-            $('#img_pin').attr('src', u(info.Map_pin));
-            $('#map_name').text(info.Map);
+        if (!tableBody || !noPlayersFound) return;
 
-            $('#server_refresh')
-                .prop('disabled', false)
-                .off('click')
-                .on('click', function () {
-                    updateInfoModalData(response.id, true);
-                });
-
-            $('#server_modal_name').text(serverName);
-            $('#bt_copy_ip').attr(
-                'data-copy',
-                `${response.ip}:${response.port}`,
-            );
-            $('#bt_play').attr(
-                'href',
-                `steam://connect/${response.ip}:${response.port}`,
-            );
-
-            updatePlayerTable(players);
-        },
-        error: function (xhr) {
-            const errorMessage =
-                xhr?.responseJSON?.error || translate('def.unknown_error');
-            toast({ message: errorMessage, type: 'error' });
-            closeInfoModal();
-        },
+        searchInput.addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase();
+            filterPlayers(playerRows, searchTerm, tableBody, noPlayersFound);
+        });
     });
 }
 
-function updatePlayerTable(players) {
-    const tableBody = $('#table-body-players');
-    tableBody.empty();
+function filterPlayers(playerRows, searchTerm, tableBody, noPlayersFound, teamFilter = null) {
+    let foundPlayers = false;
+    let visibleCount = 0;
 
-    if (players.length > 0) {
-        players.forEach((player) => {
-            const row = $('<div class="div-table-row"></div>');
-            row.append(
-                '<div class="div-table-cell"><i class="ph ph-link"></i></div>',
-            );
-            row.append(
-                `<div class="div-table-cell"><p>${player.Name}</p></div>`,
-            );
-            row.append(
-                `<div class="div-table-cell"><p>${player.Frags}</p></div>`,
-            );
-            row.append(
-                `<div class="div-table-cell"><p>${player.TimeF}</p></div>`,
-            );
-            tableBody.append(row);
-        });
+    playerRows.forEach((row) => {
+        const playerName = row
+            .querySelector('.player-name')
+            .textContent.toLowerCase();
+
+        const matchesSearch = playerName.includes(searchTerm);
+        const matchesTeam = teamFilter === null || teamFilter === 'all' || row.dataset.team === teamFilter;
+
+        if (matchesSearch && matchesTeam) {
+            row.style.display = '';
+            foundPlayers = true;
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    if (foundPlayers) {
+        tableBody.parentElement.style.display = '';
+        noPlayersFound.style.display = 'none';
     } else {
-        tableBody.append(
-            '<div class="div-table-row"><div class="div-table-cell" colspan="4">No players found</div></div>',
-        );
+        tableBody.parentElement.style.display = 'none';
+        noPlayersFound.style.display = '';
     }
+
+    return visibleCount;
 }
 
-function closeInfoModal() {
-    $('.modal-info').removeClass('opened');
-    $('#img_bg_modal').attr('src', '');
-    document.body.style.overflow = '';
-    setLoadingState(false);
+function initializeAll() {
+    initializePlayerSearch();
 }
 
-$(document).on('click', '.modal-info', function (event) {
-    if ($(event.target).is('.modal-info')) {
-        closeInfoModal();
+initializeAll();
+
+document.body.addEventListener('htmx:afterSwap', function (evt) {
+    initializeAll();
+
+    if (evt.target.matches('#main')) {
+        document.querySelectorAll('.server-details-modal').forEach((modal) => {
+            closeModal(modal.id);
+        });
     }
 });
