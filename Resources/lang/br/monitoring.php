@@ -9,7 +9,7 @@ return [
         'hide_modal_help' => 'Não mostrar a janela modal com informações do servidor ao clicar no botão "Mais".',
     ],
     'server' => [
-        'our_servers' => 'Nossos Servidores',
+        'our_servers' => 'Servidores',
         'details' => 'Detalhes do Servidor',
         'ip' => 'Endereço IP',
         'status' => 'Status',
