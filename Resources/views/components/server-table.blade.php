@@ -93,7 +93,7 @@
                         <div class="server-actions-container">
                             @if ($showActions)
                                 <x-button type="primary" size="small" class="connect-button"
-                                    onclick="window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'"
+                                    onclick="navigator.clipboard?.writeText('connect {{ $server->ip }}:{{ $server->port }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'"
                                     data-tooltip="{{ __($trans . '.actions.play') }}">
                                     <x-icon path="ph.regular.play" />
                                 </x-button>

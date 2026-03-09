@@ -79,6 +79,20 @@
         </div>
     </div>
 
+    @can('admin.servers')
+        @if ($hasError && config('app.cron_mode'))
+            <x-alert type="warning" class="server-details-message" withClose="false">
+                {{ __($trans . '.cron_message') }}
+            </x-alert>
+        @endif
+
+        @if ($server->mod == 730 && $status->players > 0)
+            <x-alert type="warning" class="server-details-plugin-alert" withClose="false">
+                {!! __($trans . '.plugin_alert', ['url' => 'https://github.com/Pisex/cs2-PlayersListCommand']) !!}
+            </x-alert>
+        @endif
+    @endcan
+
     @if ($server->enabled && !$hasError)
         <div class="server-details-players">
             <div class="server-details-players-header">
@@ -131,7 +145,7 @@
                                 <tr class="player-row">
                                     <td class="player-name">{{ $player['Name'] ?: __($trans . '.player.unknown') }}
                                     </td>
-                                    <td class="player-score">{{ $player['Score'] ?? '0' }}</td>
+                                    <td class="player-score">{{ isset($player['Frags']) ? $player['Frags'] : ($player['Score'] ?? '0') }}</td>
                                     <td class="player-time">
                                         {{ $player['Time'] ? gmdate('H:i:s', $player['Time']) : '00:00:00' }}</td>
                                 </tr>
@@ -158,7 +172,7 @@
     </x-button>
     @if ($server->enabled && !$hasError)
         <x-button type="success" class="w-100"
-            onclick="window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'">
+            onclick="navigator.clipboard?.writeText('connect {{ $server->ip }}:{{ $server->port }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'">
             {{ __($trans . '.actions.play') }}
         </x-button>
     @endif

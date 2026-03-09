@@ -2,8 +2,8 @@
 
 namespace Flute\Modules\Monitoring\Services;
 
+use Exception;
 use Flute\Modules\Monitoring\database\Entities\ServerStatus;
-use Flute\Modules\Monitoring\Services\MonitoringCacheService;
 
 class MapImageService
 {
@@ -29,7 +29,7 @@ class MapImageService
 
         $mapDir = dirname($localMapPath);
         if (!is_dir($mapDir)) {
-            mkdir($mapDir, 0755, true);
+            mkdir($mapDir, 0o755, true);
         }
 
         // $modDir = $this->getModDirForGametracker($status->server->mod, $status->game);
@@ -77,9 +77,10 @@ class MapImageService
                 file_put_contents(path('public/' . $mapPath), $imageContent);
                 $assetPath = asset($mapPath);
                 $this->cacheService->setRaw($cacheKey, $assetPath, 999999); // Long TTL for map images
+
                 return $assetPath;
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             logs()->warning("Failed to download map image from gametracker: {$e->getMessage()}");
         }
 
@@ -91,7 +92,7 @@ class MapImageService
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, MonitoringService::CONNECTION_TIMEOUT); // Assuming CONNECTION_TIMEOUT is accessible or redefine
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, MonitoringService::CONNECTION_TIMEOUT);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
         curl_setopt($ch, CURLOPT_REFERER, 'https://www.gametracker.com/');
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);

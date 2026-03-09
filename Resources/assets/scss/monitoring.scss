@@ -47,6 +47,7 @@
             width: 100%;
             height: 10px;
             border-radius: var(--border1);
+            overflow: hidden;
 
             &-bar {
                 background-color: var(--accent);
@@ -120,6 +121,9 @@
     &-info {
         padding: 1.5em;
         padding-right: 3em;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
 
         @include media(mobile) {
             padding: 1em;
@@ -130,6 +134,10 @@
             @extend .d-inline-flex, .flex-column, .gap-1;
 
             width: 100%;
+            height: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
 
             h3 {
                 font-size: var(--h5);
@@ -160,6 +168,7 @@
 
         margin: 0;
         padding: 0;
+        flex-wrap: wrap;
 
         &-badge {
             @extend .blur-bg, .flex-center, .gap-1;
@@ -170,15 +179,24 @@
             color: var(--text-100);
             font-size: var(--small);
             font-weight: 500;
-            margin: .5em 0;
 
             &.ip {
-                user-select: all;
+                cursor: pointer;
+
+                &:hover {
+                    color: var(--accent);
+                }
+            }
+
+            &.offline {
+                background-color: var(--error-light);
+                color: var(--error);
             }
         }
     }
 
     &-players {
+        margin-top: auto;
         margin-bottom: .5em;
 
         small {
@@ -252,13 +270,25 @@
 
     &-inactive {
         opacity: 0.7;
+        border-color: var(--error-light);
+        background-color: var(--transp-05);
 
         .monitoring-card-image {
             display: none;
         }
 
+        .monitoring-card-progress {
+            background-color: var(--error-light);
+            
+            &-bar {
+                background-color: var(--error);
+                height: 0% !important;
+            }
+        }
+
         &:hover {
             opacity: 1;
+            border-color: var(--error);
         }
     }
 }
@@ -298,7 +328,6 @@
 
             &-badge {
                 padding: .25em .75em;
-                margin: .25em 0;
                 font-size: var(--small);
             }
         }
@@ -334,9 +363,11 @@
         &-info {
             padding: 0.8em;
             padding-right: 1.7em;
+            height: 100%;
 
             &-block {
                 gap: 0.2em;
+                height: 100%;
 
                 h3 {
                     font-size: var(--h6);
@@ -350,12 +381,12 @@
             gap: 0.5em;
 
             &-badge {
-                padding: 0;
                 color: var(--text-200);
                 margin: 0;
                 font-size: calc(var(--small) * 0.9);
                 background: none;
                 border-radius: 15px;
+                padding: .25em .5em;
 
                 &::before {
                     display: none;
@@ -379,7 +410,8 @@
 
         &-buttons {
             gap: 0.5em;
-            margin-top: .5em;
+            margin-top: auto;
+            padding-top: .5em;
 
             button {
                 font-size: calc(var(--small) * 0.9);
@@ -400,6 +432,211 @@
             &::after {
                 background: radial-gradient(circle, var(--transp-05) -150%, var(--background) 100%);
             }
+        }
+    }
+}
+
+.monitoring-card-mode {
+    border-radius: var(--border1);
+    border: 1px solid var(--transp-2);
+    padding: var(--space-sm) var(--space-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    font-size: var(--small);
+    position: relative;
+
+    .server-map {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        border-radius: var(--border1);
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, var(--background) 00% 20%, var(--transp-05) 100%);
+            border-radius: inherit;
+        }
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+            opacity: .4;
+        }
+    }
+
+    .server-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .server-name {
+        font-size: var(--p-small);
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: var(--space-2xs);
+    }
+
+    .server-details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2xs);
+    }
+
+    .server-stats {
+        display: flex;
+        gap: var(--space-sm);
+        color: var(--text-400);
+    }
+
+    .server-map {
+        display: inline-flex;
+        font-size: var(--small);
+    }
+
+    .server-map-name {
+        font-size: var(--small);
+        color: var(--text-400);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+        text-align: right;
+
+        &::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: var(--transp-5);
+            border-radius: 50%;
+            margin-right: var(--space-xs);
+            margin-bottom: 2px;
+        }
+    }
+
+    .server-load {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2xs);
+
+        &.load-low .server-load-fill {
+            background: var(--accent);
+        }
+
+        &.load-medium .server-load-fill {
+            background: var(--warning);
+        }
+
+        &.load-high .server-load-fill {
+            background: var(--error);
+        }
+    }
+
+    .server-load-bar {
+        height: 4px;
+        background-color: var(--transp-1);
+        border-radius: 2px;
+        overflow: hidden;
+        margin: var(--space-2xs) 0;
+        margin-top: var(--space-xs);
+    }
+
+    .server-load-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.5s ease-out;
+    }
+
+    .server-ip {
+        font-family: monospace;
+        font-size: var(--small);
+        color: var(--text-400);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: all;
+    }
+
+    .server-players {
+        font-size: var(--small);
+        color: var(--text-400);
+        cursor: pointer;
+
+        &:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        &.is-full {
+            color: var(--warning);
+        }
+
+        &.has-players {
+            color: var(--accent);
+        }
+    }
+
+    .server-header {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+
+    .server-actions {
+        display: flex;
+        align-items: center;
+        flex-direction: row;
+        gap: var(--space-xs);
+        margin-left: var(--space-sm);
+    }
+
+    .server-action-btn,
+    .connect-button {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50px;
+        transition: all 0.2s ease;
+        font-size: var(--h6);
+
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        &:hover {
+            background-color: var(--transp-2);
+            color: var(--accent);
+            backdrop-filter: blur(10px);
+        }
+
+    }
+
+    .connect-button {
+        color: var(--accent);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--transp-2);
+
+        &:hover {
+            background-color: var(--accent);
+            color: var(--text-950);
         }
     }
 }
@@ -886,13 +1123,14 @@
 .navbar__logo-monitoring {
     @extend .flex-row, .align-center, .gap-1, .blur-bg;
 
-    background-color: var(--success-light);
+    background: radial-gradient(circle at 0% 50%, var(--success-light) 0%, var(--transp-1) 100%);
     padding: 0.25em 0.75em;
-    border-radius: 25px;
+    border-radius: var(--border05);
     line-height: 1.5;
     font-size: var(--small);
     font-weight: 600;
     color: var(--success);
+    border: 1px solid var(--success-light);
 
     .navbar__logo-monitoring-indicator {
         width: 8px;

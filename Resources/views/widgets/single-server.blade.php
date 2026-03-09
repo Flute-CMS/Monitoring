@@ -1,7 +1,7 @@
 @php
     $server = $serverData['server'];
     $status = $serverData['status'];
-    $isInactive = ! isset($status->online) || ! $status->online;
+    $isInactive = !isset($status->online) || !$status->online;
 @endphp
 
 <div class="monitoring-container monitoring-single-server">
@@ -12,8 +12,8 @@
                 'status' => $status,
                 'displayMode' => $displayMode ?? 'standard',
                 'isInactive' => $isInactive,
-                'hideModal' => $hideModal ?? false
+                'hideModal' => $hideModal ?? false,
             ])
         </div>
     </div>
-</div> 
+</div>

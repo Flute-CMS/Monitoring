@@ -14,36 +14,36 @@ class WidgetTotalOnline extends AbstractWidget
         $this->monitoringService = $monitoringService;
     }
 
-    public function getName() : string
+    public function getName(): string
     {
         return 'monitoring.total_online.widget';
     }
 
-    public function getIcon() : string
+    public function getIcon(): string
     {
         return 'ph.regular.users-three';
     }
 
-    public function render(array $settings) : string
+    public function render(array $settings): string
     {
         $totalPlayers = $this->monitoringService->getTotalPlayersCount();
-        $activeServers = $this->monitoringService->getActiveServers();
-        $inactiveServers = $this->monitoringService->getInactiveServers();
+        $allServers = $this->monitoringService->getAllServers();
+        $activeServersCount = count(array_filter($allServers, static fn ($s) => $s['server']->enabled && ($s['status']->online === true)));
 
         return view('monitoring::widgets.total-online', [
             'totalPlayers' => $totalPlayers,
-            'activeServersCount' => count($activeServers),
-            'totalServersCount' => count($activeServers) + count($inactiveServers)
+            'activeServersCount' => $activeServersCount,
+            'totalServersCount' => count($allServers),
         ])->render();
     }
 
-    public function getDefaultWidth() : int
+    public function getDefaultWidth(): int
     {
         return 6;
     }
 
-    public function hasSettings() : bool
+    public function hasSettings(): bool
     {
         return false;
     }
-} 
+}

@@ -147,13 +147,6 @@
             @if ($status->players > 0 && !empty($additionalData['players']))
                 @php
                     $players = $additionalData['players'];
-                    $playersSteamIds = array_column($players, 'steamid');
-
-                    try {
-                        $steamInfo = steam()->getUsersInfo($playersSteamIds);
-                    } catch (\Exception $e) {
-                        $steamInfo = [];
-                    }
                 @endphp
 
                 <div class="server-details-players-table-wrapper csgo-players-table-wrapper">
@@ -183,24 +176,12 @@
                         <tbody id="playerTableBody-{{ $serverId }}">
                             @foreach ($players as $player)
                                 @php
-                                    $playerSteamInfo = $steamInfo[$player['steamid']] ?? null;
+                                    $playerSteamInfo = $player['steam_info'] ?? [];
                                     $isT = $player['team'] == 2;
                                     $rowClass = $isT ? 't-row' : 'ct-row';
                                 @endphp
                                 @php
-                                    $faceitInfo = null;
-                                    try {
-                                        if (class_exists('\Flute\Modules\Monitoring\Services\FaceitRankService')) {
-                                            $faceitRankService = app()->get(
-                                                '\Flute\Modules\Monitoring\Services\FaceitRankService',
-                                            );
-                                            $faceitInfo = $faceitRankService->getFaceitPlayerInfo(
-                                                (int) $player['steamid'],
-                                            );
-                                        }
-                                    } catch (\Exception $e) {
-                                        // Faceit service not available
-                                    }
+                                    $faceitInfo = $player['faceit_info'] ?? null;
                                 @endphp
 
                                 <tr class="player-row {{ $rowClass }}" data-team="{{ $isT ? 't' : 'ct' }}">
@@ -216,12 +197,16 @@
                                                         data-tooltip="Faceit Level {{ $faceitInfo['skill_level'] }} ({{ $faceitInfo['faceit_elo'] }} ELO)">
                                                 </div>
                                             @endif
-                                            @if (isset($playerSteamInfo['avatar']))
-                                                <div class="player-avatar">
-                                                    <img src="{{ $playerSteamInfo['avatar'] }}"
-                                                        alt="{{ $playerSteamInfo['name'] ?? $player['name'] }}">
-                                                </div>
-                                            @endif
+                                            <div class="player-avatar">
+                                                @php $fallbackAvatar = asset(config('profile.default_avatar')); @endphp
+                                                @if (!empty($playerSteamInfo['avatar']))
+                                                    <img src="{{ $playerSteamInfo['avatar'] }}" alt="{{ $playerSteamInfo['name'] ?? ($player['name'] ?? 'Player') }}">
+                                                @elseif(!empty($player['avatar']))
+                                                    <img src="{{ $player['avatar'] }}" alt="{{ $player['name'] }}">
+                                                @else
+                                                    <img src="{{ $fallbackAvatar }}" alt="{{ $player['name'] ?? 'Player' }}">
+                                                @endif
+                                            </div>
                                             <div class="player-name">
                                                 @if (isset($player['prime']))
                                                     <span
@@ -263,8 +248,7 @@
                                     <td class="text-center">{{ $player['headshots'] ?? 0 }}</td>
                                     <td class="text-center">
                                         <div class="player-rank">
-                                            <img src="{{ $service->getPlayerRank($player['steamid'], $serverStats) }}"
-                                                alt="" loading="lazy">
+                                            {!! $service->getPlayerRank($player['steamid'], $serverStats) !!}
                                         </div>
                                     </td>
                                     <td class="text-center">
@@ -307,7 +291,7 @@
     </x-button>
     @if ($server->enabled && !$hasError)
         <x-button type="success" class="w-100 csgo-connect-button"
-            onclick="window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'">
+            onclick="navigator.clipboard?.writeText('connect {{ $server->ip }}:{{ $server->port }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'">
             {{ __($trans . '.actions.play') }}
         </x-button>
     @endif

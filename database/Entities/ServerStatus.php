@@ -6,9 +6,16 @@ use Cycle\ActiveRecord\ActiveRecord;
 use Cycle\Annotated\Annotation\Column;
 use Cycle\Annotated\Annotation\Entity;
 use Cycle\Annotated\Annotation\Relation\BelongsTo;
+use Cycle\Annotated\Annotation\Table\Index;
+use DateTimeImmutable;
+use DateTimeZone;
 use Flute\Core\Database\Entities\Server;
 
 #[Entity]
+#[Index(columns: ['updated_at'], name: 'idx_updated_at')]
+#[Index(columns: ['online', 'updated_at'], name: 'idx_online_updated')]
+#[Index(columns: ['server_id'], name: 'idx_server_id')]
+#[Index(columns: ['server_id', 'updated_at'], name: 'idx_server_updated')]
 class ServerStatus extends ActiveRecord
 {
     #[Column(type: "primary")]
@@ -38,18 +45,18 @@ class ServerStatus extends ActiveRecord
     #[Column(type: "json", nullable: true)]
     public ?string $additional = null;
 
-    #[Column(type: "timestamp", default: "CURRENT_TIMESTAMP")]
-    public \DateTimeImmutable $updated_at;
+    #[Column(type: "datetime")]
+    public DateTimeImmutable $updated_at;
 
     public function __construct()
     {
-        $this->updated_at = new \DateTimeImmutable('now');
+        $this->updated_at = new DateTimeImmutable('now');
     }
 
     /**
      * Get players data as array
      */
-    public function getPlayersData() : array
+    public function getPlayersData(): array
     {
         return json_decode($this->players_data ?? '[]', true) ?: [];
     }
@@ -57,17 +64,17 @@ class ServerStatus extends ActiveRecord
     /**
      * Set players data from array
      */
-    public function setPlayersData(array $data) : void
+    public function setPlayersData(array $data): void
     {
         $this->players_data = json_encode($data);
     }
 
-    public function getAdditional() : array
+    public function getAdditional(): array
     {
         return json_decode($this->additional ?? '[]', true) ?: [];
     }
 
-    public function setAdditional(array $data) : void
+    public function setAdditional(array $data): void
     {
         $this->additional = json_encode($data);
     }
@@ -75,9 +82,9 @@ class ServerStatus extends ActiveRecord
     /**
      * Update the updated_at timestamp
      */
-    public function touch() : void
+    public function touch(): void
     {
-        $timezone = new \DateTimeZone(config('app.timezone', 'UTC'));
-        $this->updated_at = new \DateTimeImmutable('now', $timezone);
+        $timezone = new DateTimeZone(config('app.timezone', 'UTC'));
+        $this->updated_at = new DateTimeImmutable('now', $timezone);
     }
 }

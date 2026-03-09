@@ -2,6 +2,8 @@
 
 namespace Flute\Modules\Monitoring\Services;
 
+use Exception;
+
 class FaceitRankService
 {
     /**
@@ -53,12 +55,13 @@ class FaceitRankService
                 'skill_level' => $cs2Data['skill_level'] ?? 0,
                 'faceit_elo' => $cs2Data['faceit_elo'] ?? 0,
                 'skill_level_label' => $cs2Data['skill_level_label'] ?? '',
-                'rank_image' => $this->getFaceitRankImage(1),
+                'rank_image' => $this->getFaceitRankImage((int) ($cs2Data['skill_level'] ?? 0)),
                 'faceit_url' => $player['faceit_url'] ?? null,
                 'nickname' => $player['nickname'] ?? null,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             logs('modules')->error('Failed to get Faceit player info: ' . $e->getMessage());
+
             return null;
         }
     }

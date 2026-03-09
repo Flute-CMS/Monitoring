@@ -3,10 +3,14 @@
 namespace Flute\Modules\Monitoring\Providers;
 
 use Flute\Admin\Packages\Dashboard\Services\DashboardService;
+use Flute\Core\Events\ResponseEvent;
+use Flute\Core\Support\ModuleServiceProvider;
+use Flute\Core\Template\Template;
+use Flute\Modules\Monitoring\Admin\Package\MonitoringPackage;
+use Flute\Modules\Monitoring\database\Entities\ServerStatus;
+use Flute\Modules\Monitoring\Listeners\HeadersListener;
 use Flute\Modules\Monitoring\Services\MonitoringDashboardService;
 use Flute\Modules\Monitoring\Services\MonitoringService;
-use Flute\Core\Support\ModuleServiceProvider;
-use Flute\Modules\Monitoring\database\Entities\ServerStatus;
 
 class MonitoringProvider extends ModuleServiceProvider
 {
@@ -24,8 +28,12 @@ class MonitoringProvider extends ModuleServiceProvider
 
         $this->loadScss('Resources/assets/scss/monitoring.scss');
 
+        events()->addListener(ResponseEvent::NAME, [HeadersListener::class, 'onRouteResponse']);
+
         $monitoringService = $container->get(MonitoringService::class);
         $monitoringService->setupCron();
+
+        $this->loadPackage(new MonitoringPackage());
 
         $container->set('monitoring.service', $monitoringService);
         $container->set('monitoring.dashboard', $container->get(MonitoringDashboardService::class));
@@ -35,11 +43,19 @@ class MonitoringProvider extends ModuleServiceProvider
         }
 
         if (!is_admin_path()) {
-            template()->prependToSection('navbar-logo', render('monitoring::components.navbar-logo'));
+            $template = $container->get(Template::class);
+
+            if (method_exists($template, 'prependTemplateToSection')) {
+                $template->prependTemplateToSection('navbar-logo', 'monitoring::components.navbar-logo');
+            } else {
+                $template->prependToSection('navbar-logo', $template->render('monitoring::components.navbar-logo'));
+            }
         }
     }
 
-    public function register(\DI\Container $container): void {}
+    public function register(\DI\Container $container): void
+    {
+    }
 
     /**
      * Register monitoring dashboard tabs

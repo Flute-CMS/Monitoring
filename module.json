@@ -1,12 +1,8 @@
 {
     "name": "Monitoring",
-    "version": "1.0.0",
+    "version": "1.3.0",
     "description": "Module for monitoring the servers",
-    "authors": [
-        "Flames"
-    ],
-    "providers": [
-        "Flute\\Modules\\Monitoring\\Providers\\MonitoringProvider"
-    ],
+    "authors": ["Flames"],
+    "providers": ["Flute\\Modules\\Monitoring\\Providers\\MonitoringProvider"],
     "dependencies": {}
 }

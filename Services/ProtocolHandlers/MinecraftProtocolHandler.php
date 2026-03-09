@@ -2,21 +2,26 @@
 
 namespace Flute\Modules\Monitoring\Services\ProtocolHandlers;
 
+use Exception;
 use Flute\Core\Database\Entities\Server;
 use Flute\Modules\Monitoring\database\Entities\ServerStatus;
 
 class MinecraftProtocolHandler implements ProtocolHandlerInterface
 {
     protected const CONNECTION_TIMEOUT = 3; // seconds
+
     protected const GAME_MINECRAFT = 'minecraft';
 
     public function updateStatus(Server $server, ServerStatus $status): void
     {
         try {
-            $socket = @fsockopen('udp://' . $server->ip, $server->port, $errno, $errstr, self::CONNECTION_TIMEOUT);
+            $settings = method_exists($server, 'getSettings') ? $server->getSettings() : [];
+            $queryPort = isset($settings['query_port']) ? (int)$settings['query_port'] : (int)$server->port;
+
+            $socket = @fsockopen('udp://' . $server->ip, $queryPort, $errno, $errstr, self::CONNECTION_TIMEOUT);
 
             if (!$socket) {
-                throw new \Exception("Could not connect to Minecraft server");
+                throw new Exception("Could not connect to Minecraft server");
             }
 
             $challengeTokenPacket = pack('c*', 0xFE, 0xFD, 0x09) . pack('N', 123);
@@ -24,11 +29,11 @@ class MinecraftProtocolHandler implements ProtocolHandlerInterface
 
             $challengeResponse = fread($socket, 2048);
             if (strlen($challengeResponse) < 5 || $challengeResponse[0] != "\x09") {
-                throw new \Exception("Invalid challenge response from Minecraft server");
+                throw new Exception("Invalid challenge response from Minecraft server");
             }
             $challengeToken = substr($challengeResponse, 5, -1);
             if (!is_numeric($challengeToken)) {
-                throw new \Exception("Invalid challenge token format from Minecraft server");
+                throw new Exception("Invalid challenge token format from Minecraft server");
             }
             $challengeToken = intval($challengeToken);
 
@@ -39,7 +44,7 @@ class MinecraftProtocolHandler implements ProtocolHandlerInterface
             fclose($socket);
 
             if (!$response || strlen($response) < 11) {
-                throw new \Exception("No or invalid full stat response from Minecraft server");
+                throw new Exception("No or invalid full stat response from Minecraft server");
             }
 
             // Parsing logic based on https://wiki.vg/Query
@@ -57,7 +62,7 @@ class MinecraftProtocolHandler implements ProtocolHandlerInterface
             $status->online = true;
             $status->players = isset($infoMap['numplayers']) ? (int)$infoMap['numplayers'] : 0;
             $status->max_players = isset($infoMap['maxplayers']) ? (int)$infoMap['maxplayers'] : 0;
-            $status->map = isset($infoMap['map']) ? $infoMap['map'] : (isset($infoMap['world']) ? $infoMap['world'] : 'unknown');
+            $status->map = $infoMap['map'] ?? ($infoMap['world'] ?? 'unknown');
             $status->game = self::GAME_MINECRAFT;
 
             $playersList = [];
@@ -72,8 +77,8 @@ class MinecraftProtocolHandler implements ProtocolHandlerInterface
 
             $status->setPlayersData($playersList);
             $status->touch();
-        } catch (\Exception $e) {
-            logs()->debug("Minecraft status update error for server {$server->id}: {$e->getMessage()}");
+        } catch (Exception $e) {
+            logs()->debug("Minecraft status update error for server {$server->ip}:{$server->port}: {$e->getMessage()}");
             $status->online = false;
             $status->touch();
         }

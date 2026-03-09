@@ -25,6 +25,7 @@
         <x-fields.select id="display_mode" name="display_mode">
             <option value="standard" {{ ($settings['display_mode'] ?? 'standard') == 'standard' ? 'selected' : '' }}>{{ __('monitoring.settings.display_mode_standard') }}</option>
             <option value="compact" {{ ($settings['display_mode'] ?? 'standard') == 'compact' ? 'selected' : '' }}>{{ __('monitoring.settings.display_mode_compact') }}</option>
+            <option value="mode" {{ ($settings['display_mode'] ?? 'standard') == 'mode' ? 'selected' : '' }}>{{ __('monitoring.settings.display_mode_mode') }}</option>
             <option value="ultracompact" {{ ($settings['display_mode'] ?? 'standard') == 'ultracompact' ? 'selected' : '' }}>{{ __('monitoring.settings.display_mode_ultracompact') }}</option>
             <option value="table" {{ ($settings['display_mode'] ?? 'standard') == 'table' ? 'selected' : '' }}>{{ __('monitoring.settings.display_mode_table') }}</option>
         </x-fields.select>

@@ -2,32 +2,80 @@
 
 namespace Flute\Modules\Monitoring\Services;
 
+use Carbon\Carbon;
+use DateTimeImmutable;
+use DateTimeZone;
 use Flute\Core\Database\Entities\Server;
 use Flute\Modules\Monitoring\database\Entities\ServerStatus;
-use Carbon\Carbon;
-use Cycle\Database\Injection\Expression;
 
 class MonitoringStatsService
 {
+    protected array $statuses = [];
+
+    protected array $totalPlayersCount = [];
+
+    protected array $serverStatistics = [];
+
+    protected array $latestServerStatuses = [];
+
+    protected array $yesterdayStats = [];
+
+    protected array $monitoringMetrics = [];
+
+    protected array $gameDistribution = [];
+
+    protected array $serverDistribution = [];
+
+    protected array $multiServerStats = [];
+
+    protected array $hourlyTraffic = [];
+
+    protected MonitoringCacheService $cacheService;
+
+    public function __construct(MonitoringCacheService $cacheService)
+    {
+        $this->cacheService = $cacheService;
+    }
+
     public function getLatestServerStatusesForEnabledServers(): array
     {
-        $servers = Server::query()->where('enabled', true)->fetchAll();
+        if (!empty($this->latestServerStatuses)) {
+            return $this->latestServerStatuses;
+        }
+
+        $servers = $this->cacheService->getEnabledServers();
+        if (!$servers) {
+            return [];
+        }
+
+        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+        $yesterday = new DateTimeImmutable('-24 hours');
+
+        $allStatuses = ServerStatus::query()
+            ->load('server')
+            ->where('server_id', 'IN', new \Cycle\Database\Injection\Parameter($serverIds))
+            ->where('updated_at', '>=', $yesterday)
+            ->orderBy('updated_at', 'DESC')
+            ->fetchAll();
 
         $statusMap = [];
-        foreach ($servers as $server) {
-            $statuses = ServerStatus::query()
-                ->where('server.id', $server->id)
-                ->orderBy('updated_at', 'DESC')
-                ->limit(1)
-                ->fetchAll();
-
-            $statusMap[$server->id] = $statuses[0];
+        foreach ($allStatuses as $status) {
+            $serverId = $status->server->id ?? null;
+            if ($serverId !== null && !isset($statusMap[$serverId])) {
+                $statusMap[$serverId] = $status;
+            }
         }
+
+        $this->latestServerStatuses = $statusMap;
+
         return $statusMap;
     }
 
     public function getTotalPlayersCount(): array
     {
+        if (!empty($this->totalPlayersCount)) {
+            return $this->totalPlayersCount;
+        }
         $statuses = $this->getLatestServerStatusesForEnabledServers();
         $totalPlayers = 0;
         $totalMaxPlayers = 0;
@@ -37,103 +85,49 @@ class MonitoringStatsService
                 $totalMaxPlayers += $status->max_players;
             }
         }
-        return [
+
+        $this->totalPlayersCount = [
             'players' => $totalPlayers,
-            'max_players' => $totalMaxPlayers
+            'max_players' => $totalMaxPlayers,
         ];
+
+        return $this->totalPlayersCount;
     }
 
     public function getServerStatistics(string $period = 'day', ?int $serverId = null): array
     {
-        $timezone = new \DateTimeZone(config('app.timezone', 'UTC'));
-        $now = new \DateTimeImmutable('now', $timezone);
+        $cacheKey = $period . '_' . ($serverId ?? 'all');
+        if (!empty($this->serverStatistics[$cacheKey])) {
+            return $this->serverStatistics[$cacheKey];
+        }
+
+        $timezone = new DateTimeZone(config('app.timezone', 'UTC'));
+        $now = new DateTimeImmutable('now', $timezone);
         $startDate = $this->getStartDateForPeriod($now, $period);
-        $query = ServerStatus::query()->where('updated_at', '>=', $startDate);
-
-        if ($serverId) {
-            $query = $query->where('server.id', $serverId);
-        }
-
-        $query->orderBy('updated_at', 'DESC');
-
-        $serverIds = [];
-        if ($serverId) {
-            $serverIds = [$serverId];
-        } else {
-            $serverIdQuery = clone $query;
-            $serverIdResults = $serverIdQuery->select('server.id')->groupBy('server.id')->fetchAll();
-            foreach ($serverIdResults as $result) {
-                $serverIds[] = $result->server->id;
-            }
-        }
 
         $interval = $this->getIntervalForPeriod($period);
         $timeRanges = $this->generateTimeRanges($period, $interval);
 
         $results = [];
 
-        foreach ($serverIds as $currentServerId) {
-            $singleServerQuery = ServerStatus::query()
-                ->where('updated_at', '>=', $startDate)
-                ->where('server.id', $currentServerId);
-
-            foreach ($timeRanges['keys'] as $key) {
-                if ($interval === 'hourly') {
-                    $keyParts = explode(' ', $key);
-                    if (count($keyParts) === 2) {
-                        $datePart = $keyParts[0];
-                        $hourPart = (int)$keyParts[1];
-
-                        $startHour = new \DateTimeImmutable("{$datePart} {$hourPart}:00:00", $timezone);
-                        $endHour = new \DateTimeImmutable("{$datePart} {$hourPart}:59:59", $timezone);
-
-                        $hourlyResult = clone $singleServerQuery;
-                        $hourlyResult->where('updated_at', '>=', $startHour)
-                            ->where('updated_at', '<=', $endHour)
-                            ->orderBy('updated_at', 'DESC')
-                            ->limit(1);
-
-                        $record = $hourlyResult->fetchOne();
-                        if ($record) {
-                            $results[] = $record;
-                        }
-                    }
-                } else if ($interval === 'daily') {
-                    $startDay = new \DateTimeImmutable("{$key} 00:00:00", $timezone);
-                    $endDay = new \DateTimeImmutable("{$key} 23:59:59", $timezone);
-
-                    $dailyResult = clone $singleServerQuery;
-                    $dailyResult->where('updated_at', '>=', $startDay)
-                        ->where('updated_at', '<=', $endDay)
-                        ->orderBy('updated_at', 'DESC')
-                        ->limit(1);
-
-                    $record = $dailyResult->fetchOne();
-                    if ($record) {
-                        $results[] = $record;
-                    }
-                }
-            }
+        if ($interval === 'hourly') {
+            $results = $this->getHourlyAggregatedData($startDate, $serverId, $timeRanges['keys']);
+        } else {
+            $results = $this->getDailyAggregatedData($startDate, $serverId, $timeRanges['keys']);
         }
+
+        $this->serverStatistics[$cacheKey] = $results;
 
         return $results;
     }
 
-    protected function getStartDateForPeriod(\DateTimeImmutable $now, string $period): \DateTimeImmutable
-    {
-        switch ($period) {
-            case 'week':
-                return $now->modify('-7 days');
-            case 'month':
-                return $now->modify('-30 days');
-            case 'day':
-            default:
-                return $now->modify('-24 hours');
-        }
-    }
-
     public function calculateServerStatistics(string $period = 'day', ?int $serverId = null): array
     {
+        $cacheKey = $period . '_' . ($serverId ?? 'all');
+        if (!empty($this->serverStatistics[$cacheKey . '_calculated'])) {
+            return $this->serverStatistics[$cacheKey . '_calculated'];
+        }
+
         $statistics = $this->getServerStatistics($period, $serverId);
         $interval = $this->getIntervalForPeriod($period);
         $timeRanges = $this->generateTimeRanges($period, $interval);
@@ -168,7 +162,231 @@ class MonitoringStatsService
             }
         }
 
-        return $this->formatStatisticsResult($serverId, $playersData, $maxPlayersInPeriod, $serversData, $timeRanges['labels']);
+        $result = $this->formatStatisticsResult($serverId, $playersData, $maxPlayersInPeriod, $serversData, $timeRanges['labels']);
+        $this->serverStatistics[$cacheKey . '_calculated'] = $result;
+
+        return $result;
+    }
+
+    public function calculateMonitoringMetrics(): array
+    {
+        if (!empty($this->monitoringMetrics)) {
+            return $this->monitoringMetrics;
+        }
+
+        $servers = $this->cacheService->getEnabledServers();
+        $statusMap = $this->getLatestServerStatusesForEnabledServers();
+        $totalServers = count($servers);
+        $onlineServers = 0;
+        $totalPlayers = 0;
+        $maxCapacity = 0;
+
+        foreach ($statusMap as $status) {
+            if ($status->online) {
+                $onlineServers++;
+                $totalPlayers += $status->players;
+                $maxCapacity += $status->max_players;
+            }
+        }
+        $fillRate = $maxCapacity > 0 ? ($totalPlayers / $maxCapacity) * 100 : 0;
+        $yesterdayStats = $this->getYesterdayStats();
+        $yesterdayPlayers = $this->calculateYesterdayPlayers($yesterdayStats);
+        $playersDiff = $yesterdayPlayers > 0 ? (($totalPlayers - $yesterdayPlayers) / $yesterdayPlayers) * 100 : 0;
+
+        $this->monitoringMetrics = [
+            'total_servers' => ['value' => $totalServers, 'diff' => 0],
+            'online_servers' => ['value' => $onlineServers, 'diff' => $totalServers > 0 ? ($onlineServers / $totalServers) * 100 : 0],
+            'total_players' => ['value' => $totalPlayers, 'diff' => round($playersDiff, 1)],
+            'servers_fill' => ['value' => round($fillRate, 1) . '%', 'diff' => 0],
+        ];
+
+        return $this->monitoringMetrics;
+    }
+
+    public function getGameDistribution(): array
+    {
+        if (!empty($this->gameDistribution)) {
+            return $this->gameDistribution;
+        }
+
+        $latestStatuses = $this->getLatestServerStatusesForEnabledServers();
+
+        $gameMap = [];
+        foreach ($latestStatuses as $status) {
+            if (!$status->online) {
+                continue;
+            }
+            $game = $status->game ?? 'unknown';
+            if (!isset($gameMap[$game])) {
+                $gameMap[$game] = ['count' => 0, 'players' => 0];
+            }
+            $gameMap[$game]['count']++;
+            $gameMap[$game]['players'] += $status->players;
+        }
+
+        uasort($gameMap, static fn ($a, $b) => $b['players'] - $a['players']);
+        $gameMap = array_slice($gameMap, 0, 5, true);
+
+        $data = [];
+        $labels = [];
+        foreach ($gameMap as $game => $stats) {
+            $data[] = $stats['players'];
+            $labels[] = $game;
+        }
+
+        $this->gameDistribution = ['series' => $data, 'labels' => $labels];
+
+        return $this->gameDistribution;
+    }
+
+    public function getServerDistribution(): array
+    {
+        if (!empty($this->serverDistribution)) {
+            return $this->serverDistribution;
+        }
+
+        $latestStatuses = $this->getLatestServerStatusesForEnabledServers();
+
+        $serverMap = [];
+        foreach ($latestStatuses as $status) {
+            if (!$status->online) {
+                continue;
+            }
+            $serverMap[$status->server->id] = [
+                'name' => $status->server->name ?? __('monitoring.unknown_server'),
+                'players' => $status->players,
+                'max_players' => $status->max_players,
+            ];
+        }
+
+        uasort($serverMap, static fn ($a, $b) => $b['players'] - $a['players']);
+        $serverMap = array_slice($serverMap, 0, 5, true);
+
+        $data = [];
+        $labels = [];
+        foreach ($serverMap as $stats) {
+            $data[] = $stats['players'];
+            $labels[] = $stats['name'];
+        }
+
+        $this->serverDistribution = ['series' => $data, 'labels' => $labels];
+
+        return $this->serverDistribution;
+    }
+
+    public function getMultiServerStatistics(string $period = 'day'): array
+    {
+        $selectedServerId = request()->input('tab-server_tabs');
+        $cacheKey = $period . '_' . ($selectedServerId ?? 'all');
+
+        if (!empty($this->multiServerStats[$cacheKey])) {
+            return $this->multiServerStats[$cacheKey];
+        }
+
+        $servers = $this->cacheService->getEnabledServers();
+        $result = ['labels' => [], 'series' => []];
+        $interval = $this->getIntervalForPeriod($period);
+        $timeRanges = $this->generateTimeRanges($period, $interval);
+        $result['labels'] = $timeRanges['labels'];
+
+        foreach ($servers as $server) {
+            if ($selectedServerId && $selectedServerId != $server->id) {
+                continue;
+            }
+
+            $serverStats = $this->calculateServerStatistics($period, $server->id);
+            $this->addServerDataToMultiSeries($result['series'], $serverStats, $server);
+        }
+
+        $this->multiServerStats[$cacheKey] = $result;
+
+        return $result;
+    }
+
+    public function getHourlyTraffic(?int $serverId = null): array
+    {
+        $cacheKey = $serverId ?? 'all';
+
+        if (!empty($this->hourlyTraffic[$cacheKey])) {
+            return $this->hourlyTraffic[$cacheKey];
+        }
+
+        $timezone = new DateTimeZone(config('app.timezone', 'UTC'));
+        $startDate = new DateTimeImmutable('-7 days', $timezone);
+        $statistics = $this->getOptimizedHourlyTrafficStatistics($startDate, $serverId);
+        $hourlyData = $this->aggregateHourlyTrafficData($statistics);
+        $result = $this->formatHourlyTrafficData($hourlyData);
+
+        $this->hourlyTraffic[$cacheKey] = $result;
+
+        return $result;
+    }
+
+    protected function getHourlyAggregatedData(DateTimeImmutable $startDate, ?int $serverId, array $timeKeys): array
+    {
+        if (empty($timeKeys)) {
+            return [];
+        }
+
+        $servers = $serverId
+            ? [Server::findByPK($serverId)]
+            : $this->cacheService->getEnabledServers();
+
+        $servers = array_filter($servers);
+        if (empty($servers)) {
+            return [];
+        }
+
+        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+
+        $allStatuses = ServerStatus::query()
+            ->load('server')
+            ->where('server_id', 'IN', new \Cycle\Database\Injection\Parameter($serverIds))
+            ->where('updated_at', '>=', $startDate)
+            ->orderBy('updated_at', 'DESC')
+            ->fetchAll();
+
+        return $allStatuses;
+    }
+
+    protected function getDailyAggregatedData(DateTimeImmutable $startDate, ?int $serverId, array $timeKeys): array
+    {
+        if (empty($timeKeys)) {
+            return [];
+        }
+
+        $servers = $serverId
+            ? [Server::findByPK($serverId)]
+            : $this->cacheService->getEnabledServers();
+
+        $servers = array_filter($servers);
+        if (empty($servers)) {
+            return [];
+        }
+
+        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+
+        $allStatuses = ServerStatus::query()
+            ->load('server')
+            ->where('server_id', 'IN', new \Cycle\Database\Injection\Parameter($serverIds))
+            ->where('updated_at', '>=', $startDate)
+            ->orderBy('updated_at', 'DESC')
+            ->fetchAll();
+
+        return $allStatuses;
+    }
+
+    protected function getStartDateForPeriod(DateTimeImmutable $now, string $period): DateTimeImmutable
+    {
+        switch ($period) {
+            case 'week':
+                return $now->modify('-7 days');
+            case 'month':
+                return $now->modify('-30 days');
+            case 'day':
+            default:
+                return $now->modify('-24 hours');
+        }
     }
 
     protected function processServerStatistics(
@@ -184,42 +402,51 @@ class MonitoringStatsService
         ?int $targetServerId
     ): void {
         $timezone = config('app.timezone', 'UTC');
+
+        $timeKeyMap = array_flip($timeRanges['keys']);
+
         foreach ($statistics as $stat) {
             $date = Carbon::parse($stat->updated_at)->timezone($timezone);
             $key = $this->getTimeKey($date, $interval);
-            $keyIndex = array_search($key, $timeRanges['keys']);
 
-            if ($keyIndex !== false) {
-                $currentStatServerId = $stat->server->id;
-                if (!isset($serverTracker[$keyIndex][$currentStatServerId])) {
-                    $serverTracker[$keyIndex][$currentStatServerId] = [
-                        'players' => 0,
-                        'max_players' => 0,
-                        'online' => false,
-                        'updated_at' => null
-                    ];
-                }
+            if (!isset($timeKeyMap[$key])) {
+                continue;
+            }
 
-                $existingTimestamp = $serverTracker[$keyIndex][$currentStatServerId]['updated_at'];
-                if ($existingTimestamp === null || $date->gt(Carbon::parse($existingTimestamp)->timezone($timezone))) {
-                    $serverTracker[$keyIndex][$currentStatServerId] = [
-                        'players' => $stat->players,
-                        'max_players' => $stat->max_players,
-                        'online' => $stat->online,
-                        'updated_at' => $stat->updated_at
-                    ];
-                }
+            $keyIndex = $timeKeyMap[$key];
+            $server_id = $stat->server->id;
+            $players = $stat->players;
+            $max_players = $stat->max_players;
+            $online = $stat->online;
+            $updated_at = $stat->updated_at;
 
-                if ($targetServerId && $currentStatServerId == $targetServerId) {
-                    $playersData[$keyIndex] += $stat->players;
-                    if ($stat->players > $maxPlayersInPeriod[$keyIndex]) {
-                        $maxPlayersInPeriod[$keyIndex] = $stat->players;
-                    }
-                    if ($stat->online) {
-                        $serversData[$keyIndex]++;
-                    }
-                    $countData[$keyIndex]++;
+            if (!isset($serverTracker[$keyIndex][$server_id])) {
+                $serverTracker[$keyIndex][$server_id] = [
+                    'players' => 0,
+                    'max_players' => 0,
+                    'online' => false,
+                    'updated_at' => null,
+                ];
+            }
+
+            $existingTimestamp = $serverTracker[$keyIndex][$server_id]['updated_at'];
+
+            if ($existingTimestamp === null || $updated_at > $existingTimestamp) {
+                $serverTracker[$keyIndex][$server_id] = [
+                    'players' => $players,
+                    'max_players' => $max_players,
+                    'online' => $online,
+                    'updated_at' => $updated_at,
+                ];
+            }
+
+            if ($targetServerId && $server_id == $targetServerId) {
+                $playersData[$keyIndex] += $players;
+                $maxPlayersInPeriod[$keyIndex] = max($maxPlayersInPeriod[$keyIndex], $players);
+                if ($online) {
+                    $serversData[$keyIndex]++;
                 }
+                $countData[$keyIndex]++;
             }
         }
     }
@@ -267,19 +494,20 @@ class MonitoringStatsService
             return [
                 'series' => [
                     ['name' => __('monitoring.charts.players'), 'data' => $playersData],
-                    ['name' => __('monitoring.charts.max_players_period'), 'data' => $maxPlayersInPeriod]
+                    ['name' => __('monitoring.charts.max_players_period'), 'data' => $maxPlayersInPeriod],
                 ],
-                'labels' => $labels
-            ];
-        } else {
-            return [
-                'series' => [
-                    ['name' => __('monitoring.charts.players'), 'data' => $playersData],
-                    ['name' => __('monitoring.charts.servers'), 'data' => $serversData]
-                ],
-                'labels' => $labels
+                'labels' => $labels,
             ];
         }
+
+        return [
+            'series' => [
+                ['name' => __('monitoring.charts.players'), 'data' => $playersData],
+                ['name' => __('monitoring.charts.servers'), 'data' => $serversData],
+            ],
+            'labels' => $labels,
+        ];
+
     }
 
     protected function getIntervalForPeriod(string $period): string
@@ -299,17 +527,20 @@ class MonitoringStatsService
     {
         $keys = [];
         $labels = [];
-        $timezone = new \DateTimeZone(config('app.timezone', 'UTC'));
+        $timezone = new DateTimeZone(config('app.timezone', 'UTC'));
         $now = Carbon::now($timezone);
         switch ($interval) {
             case 'hourly':
                 $this->generateHourlyTimeRanges($now, $keys, $labels);
+
                 break;
             case 'daily':
                 $days = $period === 'week' ? 7 : 30;
                 $this->generateDailyTimeRanges($now, $days, $keys, $labels);
+
                 break;
         }
+
         return ['keys' => $keys, 'labels' => $labels];
     }
 
@@ -317,7 +548,9 @@ class MonitoringStatsService
     {
         for ($i = 0; $i < 24; $i++) {
             $hour = $now->copy()->subHours(23 - $i);
-            if ($hour->gt($now)) continue;
+            if ($hour->gt($now)) {
+                continue;
+            }
             $labels[] = $hour->format('H:00');
             $keys[] = $hour->format('Y-m-d H');
         }
@@ -327,175 +560,93 @@ class MonitoringStatsService
     {
         for ($i = 0; $i < $days; $i++) {
             $day = $now->copy()->subDays($days - 1 - $i);
-            if ($day->gt($now)) continue;
+            if ($day->gt($now)) {
+                continue;
+            }
             $labels[] = $day->format('d M');
             $keys[] = $day->format('Y-m-d');
         }
     }
 
-    public function calculateMonitoringMetrics(): array
+    protected function getOptimizedHourlyTrafficStatistics(DateTimeImmutable $startDate, ?int $serverId): array
     {
-        $servers = Server::findAll(['enabled' => true]); // This might be better if MonitoringService provides it
-        $statusMap = $this->getLatestServerStatusesForEnabledServers();
-        $totalServers = count($servers);
-        $onlineServers = 0;
-        $totalPlayers = 0;
-        $maxCapacity = 0;
-
-        foreach ($statusMap as $status) {
-            if ($status->online) {
-                $onlineServers++;
-                $totalPlayers += $status->players;
-                $maxCapacity += $status->max_players;
+        $servers = [];
+        if ($serverId) {
+            $server = Server::findByPK($serverId);
+            if ($server && $server->enabled) {
+                $servers = [$server];
             }
+        } else {
+            $servers = $this->cacheService->getEnabledServers();
         }
-        $fillRate = $maxCapacity > 0 ? ($totalPlayers / $maxCapacity) * 100 : 0;
-        $yesterdayStats = $this->getYesterdayStats();
-        $yesterdayPlayers = $this->calculateYesterdayPlayers($yesterdayStats);
-        $playersDiff = $yesterdayPlayers > 0 ? (($totalPlayers - $yesterdayPlayers) / $yesterdayPlayers) * 100 : 0;
 
-        return [
-            'total_servers' => ['value' => $totalServers, 'diff' => 0],
-            'online_servers' => ['value' => $onlineServers, 'diff' => $totalServers > 0 ? ($onlineServers / $totalServers) * 100 : 0],
-            'total_players' => ['value' => $totalPlayers, 'diff' => round($playersDiff, 1)],
-            'servers_fill' => ['value' => round($fillRate, 1) . '%', 'diff' => 0],
-        ];
+        if (empty($servers)) {
+            return [];
+        }
+
+        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+
+        $query = ServerStatus::query()
+            ->load('server')
+            ->where('server_id', 'IN', new \Cycle\Database\Injection\Parameter($serverIds))
+            ->where('updated_at', '>=', $startDate)
+            ->where('online', true)
+            ->orderBy('updated_at', 'DESC');
+
+        return $query->fetchAll();
     }
 
     protected function getYesterdayStats(): array
     {
-        $timezone = new \DateTimeZone(config('app.timezone', 'UTC'));
-        $yesterday = new \DateTimeImmutable('-24 hours', $timezone);
-        $dayBefore = new \DateTimeImmutable('-48 hours', $timezone);
-        return ServerStatus::query()
+        if (!empty($this->yesterdayStats)) {
+            return $this->yesterdayStats;
+        }
+
+        $timezone = new DateTimeZone(config('app.timezone', 'UTC'));
+        $yesterday = new DateTimeImmutable('-24 hours', $timezone);
+        $dayBefore = new DateTimeImmutable('-48 hours', $timezone);
+
+        $servers = $this->cacheService->getEnabledServers();
+        if (empty($servers)) {
+            return [];
+        }
+
+        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+
+        $allStatuses = ServerStatus::query()
+            ->load('server')
+            ->where('server_id', 'IN', new \Cycle\Database\Injection\Parameter($serverIds))
             ->where('updated_at', '>=', $dayBefore)
             ->where('updated_at', '<', $yesterday)
             ->orderBy('updated_at', 'DESC')
-            ->groupBy('server.id')
             ->fetchAll();
+
+        $serverLatest = [];
+        $seenServers = [];
+
+        foreach ($allStatuses as $status) {
+            $serverId = $status->server->id ?? null;
+            if ($serverId !== null && !isset($seenServers[$serverId])) {
+                $seenServers[$serverId] = true;
+                $serverLatest[] = $status;
+            }
+        }
+
+        $this->yesterdayStats = $serverLatest;
+
+        return $serverLatest;
     }
 
     protected function calculateYesterdayPlayers(array $yesterdayStats): int
     {
-        $yesterdayStatusMap = [];
-        foreach ($yesterdayStats as $stat) {
-            $serverId = $stat->server->id;
-            if (!isset($yesterdayStatusMap[$serverId]) || $stat->updated_at > $yesterdayStatusMap[$serverId]->updated_at) {
-                $yesterdayStatusMap[$serverId] = $stat;
-            }
-        }
         $yesterdayPlayers = 0;
-        foreach ($yesterdayStatusMap as $stat) {
-            if ($stat->online) $yesterdayPlayers += $stat->players;
+        foreach ($yesterdayStats as $stat) {
+            if ($stat->online) {
+                $yesterdayPlayers += $stat->players;
+            }
         }
+
         return $yesterdayPlayers;
-    }
-
-    public function getGameDistribution(): array
-    {
-        $statuses = ServerStatus::query()
-            ->where('server.enabled', true)
-            ->where('online', true)
-            ->orderBy('updated_at', 'DESC')
-            ->groupBy('server.id')
-            ->fetchAll();
-
-        $gameMap = $this->aggregateGameDistribution($statuses);
-        return $this->formatDistributionDataForGames($gameMap); // Renamed for clarity
-    }
-
-    protected function aggregateGameDistribution(array $statuses): array
-    {
-        $gameMap = [];
-        foreach ($statuses as $status) {
-            if (!$status->online) continue;
-            $game = $status->game ?? 'unknown';
-            if (!isset($gameMap[$game])) {
-                $gameMap[$game] = ['count' => 0, 'players' => 0];
-            }
-            $gameMap[$game]['count']++;
-            $gameMap[$game]['players'] += $status->players;
-        }
-        uasort($gameMap, fn($a, $b) => $b['players'] - $a['players']);
-        return $gameMap;
-    }
-
-    protected function formatDistributionDataForGames(array $distributionMap): array // Renamed
-    {
-        $data = [];
-        $labels = [];
-        $counter = 0;
-        foreach ($distributionMap as $key => $stats) {
-            $data[] = $stats['players'];
-            $labels[] = $key;
-            $counter++;
-            if ($counter >= 5) break;
-        }
-        return ['series' => $data, 'labels' => $labels];
-    }
-
-    public function getServerDistribution(): array
-    {
-        $statuses = ServerStatus::query()
-            ->where('server.enabled', true)
-            ->where('online', true)
-            ->orderBy('updated_at', 'DESC')
-            ->groupBy('server.id')
-            ->fetchAll();
-
-        $serverMap = $this->aggregateServerDistribution($statuses);
-        return $this->formatDistributionDataForServers($serverMap);
-    }
-
-    protected function aggregateServerDistribution(array $statuses): array
-    {
-        $serverMap = [];
-        foreach ($statuses as $status) {
-            if (!$status->online) continue;
-            $serverName = $status->server->name ?? __('monitoring.unknown_server');
-            $serverMap[$status->server->id] = [
-                'name' => $serverName,
-                'players' => $status->players,
-                'max_players' => $status->max_players
-            ];
-        }
-        uasort($serverMap, fn($a, $b) => $b['players'] - $a['players']);
-        return $serverMap;
-    }
-
-    protected function formatDistributionDataForServers(array $distributionMap): array
-    {
-        $data = [];
-        $labels = [];
-        $counter = 0;
-        foreach ($distributionMap as $serverId => $stats) {
-            $data[] = $stats['players'];
-            $labels[] = $stats['name']; // Use server name for labels
-            $counter++;
-            if ($counter >= 5) break;
-        }
-        return ['series' => $data, 'labels' => $labels];
-    }
-
-    public function getMultiServerStatistics(string $period = 'day'): array
-    {
-        $servers = Server::findAll(['enabled' => true]);
-        $result = ['labels' => [], 'series' => []];
-        $interval = $this->getIntervalForPeriod($period);
-        $timeRanges = $this->generateTimeRanges($period, $interval);
-        $result['labels'] = $timeRanges['labels'];
-
-        $selectedServerId = request()->input('tab-server_tabs');
-
-        foreach ($servers as $server) {
-            if ($selectedServerId && $selectedServerId != $server->id) {
-                continue;
-            }
-
-            $serverStats = $this->calculateServerStatistics($period, $server->id);
-            $this->addServerDataToMultiSeries($result['series'], $serverStats, $server);
-        }
-        return $result;
     }
 
     protected function addServerDataToMultiSeries(array &$series, array $serverStats, Server $server): void
@@ -503,76 +654,10 @@ class MonitoringStatsService
         foreach ($serverStats['series'] as $serieData) {
             if ($serieData['name'] === __('monitoring.charts.players')) {
                 $series[] = ['name' => $server->name, 'data' => $serieData['data']];
+
                 break;
             }
         }
-    }
-
-    public function getHourlyTraffic(?int $serverId = null): array
-    {
-        $timezone = new \DateTimeZone(config('app.timezone', 'UTC'));
-        $startDate = new \DateTimeImmutable('-7 days', $timezone);
-        $statistics = $this->getOptimizedHourlyTrafficStatistics($startDate, $serverId);
-        $hourlyData = $this->aggregateHourlyTrafficData($statistics);
-        return $this->formatHourlyTrafficData($hourlyData);
-    }
-
-    protected function getOptimizedHourlyTrafficStatistics(\DateTimeImmutable $startDate, ?int $serverId): array
-    {
-        $query = ServerStatus::query()->where('updated_at', '>=', $startDate);
-        if ($serverId) {
-            $query = $query->where('server.id', $serverId);
-        }
-
-        $timezone = config('app.timezone', 'UTC');
-        $now = new \DateTimeImmutable('now', new \DateTimeZone($timezone));
-        $results = [];
-
-        $serverIds = [];
-        if ($serverId) {
-            $serverIds = [$serverId];
-        } else {
-            $serverIdQuery = clone $query;
-            $serverIdResults = $serverIdQuery->columns('server.id')->groupBy('server.id')->fetchAll();
-            foreach ($serverIdResults as $result) {
-                $serverIds[] = $result->server->id;
-            }
-        }
-
-        $hours = [];
-        for ($h = 0; $h < 24; $h++) {
-            $hours[] = $h;
-        }
-
-        foreach ($serverIds as $sid) {
-            $serverQuery = ServerStatus::query()
-                ->where('updated_at', '>=', $startDate)
-                ->where('server.id', $sid)
-                ->where('online', true);
-
-            foreach ($hours as $hour) {
-                $hourSamples = clone $serverQuery;
-                $hourSamples->where(function ($q) use ($hour) {
-                    $q->where(new Expression('HOUR(serverStatus.updated_at) = ?', [$hour]));
-                })->orderBy('updated_at', 'DESC')->limit(1);
-
-                $record = $hourSamples->fetchOne();
-                if ($record) {
-                    $results[] = $record;
-                }
-            }
-        }
-
-        return $results;
-    }
-
-    protected function getHourlyTrafficStatistics(\DateTimeImmutable $startDate, ?int $serverId): array
-    {
-        $query = ServerStatus::query()->where('updated_at', '>=', $startDate);
-        if ($serverId) {
-            $query = $query->where('server.id', $serverId);
-        }
-        return $query->fetchAll();
     }
 
     protected function aggregateHourlyTrafficData(array $statistics): array
@@ -588,6 +673,7 @@ class MonitoringStatsService
                 $hourlyData[$hour]['count']++;
             }
         }
+
         return $hourlyData;
     }
 
@@ -606,12 +692,13 @@ class MonitoringStatsService
                 $maxPlayersData[] = 0;
             }
         }
+
         return [
             'series' => [
                 ['name' => __('monitoring.charts.players'), 'data' => $playersData],
-                ['name' => __('monitoring.charts.max_players'), 'data' => $maxPlayersData]
+                ['name' => __('monitoring.charts.max_players'), 'data' => $maxPlayersData],
             ],
-            'labels' => $labels
+            'labels' => $labels,
         ];
     }
 }
