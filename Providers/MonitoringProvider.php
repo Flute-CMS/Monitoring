@@ -20,7 +20,11 @@ class MonitoringProvider extends ModuleServiceProvider
     {
         $this->bootstrapModule();
 
-        if (!orm()->getRepository(ServerStatus::class)) {
+        try {
+            if (!orm()->getSchema()->defines('serverStatus') && !orm()->getSchema()->defines('ServerStatus')) {
+                return;
+            }
+        } catch (\Throwable) {
             return;
         }
 

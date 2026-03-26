@@ -8,35 +8,16 @@ use DateTimeInterface;
 use DateTimeZone;
 use Exception;
 use Flute\Core\Database\Entities\Server;
+use Flute\Core\Rcon\RconService;
+use Flute\Core\ServerQuery\QueryResult;
+use Flute\Core\ServerQuery\ServerQueryService;
 use Flute\Core\Services\DatabaseService;
 use Flute\Modules\Monitoring\database\Entities\ServerStatus;
-use Flute\Modules\Monitoring\Services\ProtocolHandlers\CS16ProtocolHandler;
-use Flute\Modules\Monitoring\Services\ProtocolHandlers\Gta5ProtocolHandler;
-use Flute\Modules\Monitoring\Services\ProtocolHandlers\MinecraftProtocolHandler;
-use Flute\Modules\Monitoring\Services\ProtocolHandlers\ProtocolHandlerInterface;
-use Flute\Modules\Monitoring\Services\ProtocolHandlers\RustProtocolHandler;
-use Flute\Modules\Monitoring\Services\ProtocolHandlers\SampProtocolHandler;
-use Flute\Modules\Monitoring\Services\ProtocolHandlers\SourceProtocolHandler;
 use Throwable;
-use xPaw\SourceQuery\SourceQuery;
 
 class MonitoringService
 {
     public const STATUS_RETENTION_DAYS = 60;
-
-    public const PROTOCOL_SOURCE = SourceQuery::SOURCE;
-
-    public const PROTOCOL_GOLDSRC = SourceQuery::GOLDSOURCE;
-
-    public const PROTOCOL_CS16 = 6;
-
-    public const PROTOCOL_MINECRAFT = 2;
-
-    public const PROTOCOL_SAMP = 3;
-
-    public const PROTOCOL_GTA5 = 4;
-
-    public const PROTOCOL_RUST = 5;
 
     public const CONNECTION_TIMEOUT = 3;
 
@@ -62,17 +43,9 @@ class MonitoringService
 
     public const BATCH_SIZE = 10;
 
-    private SourceProtocolHandler $sourceProtocolHandler;
+    private ServerQueryService $queryService;
 
-    private CS16ProtocolHandler $cs16ProtocolHandler;
-
-    private MinecraftProtocolHandler $minecraftProtocolHandler;
-
-    private SampProtocolHandler $sampProtocolHandler;
-
-    private Gta5ProtocolHandler $gta5ProtocolHandler;
-
-    private RustProtocolHandler $rustProtocolHandler;
+    private RconService $rconService;
 
     private MonitoringCacheService $cacheService;
 
@@ -80,30 +53,26 @@ class MonitoringService
 
     private MonitoringStatsService $statsService;
 
+    private MonitoringPingService $pingService;
+
     private ?array $servers = null;
 
     private string $serversSignature = '';
 
     public function __construct(
-        SourceProtocolHandler $sourceProtocolHandler,
-        CS16ProtocolHandler $cs16ProtocolHandler,
-        MinecraftProtocolHandler $minecraftProtocolHandler,
-        SampProtocolHandler $sampProtocolHandler,
-        Gta5ProtocolHandler $gta5ProtocolHandler,
-        RustProtocolHandler $rustProtocolHandler,
+        ServerQueryService $queryService,
+        RconService $rconService,
         MonitoringCacheService $cacheService,
         MapImageService $mapImageService,
-        MonitoringStatsService $statsService
+        MonitoringStatsService $statsService,
+        MonitoringPingService $pingService,
     ) {
-        $this->sourceProtocolHandler = $sourceProtocolHandler;
-        $this->cs16ProtocolHandler = $cs16ProtocolHandler;
-        $this->minecraftProtocolHandler = $minecraftProtocolHandler;
-        $this->sampProtocolHandler = $sampProtocolHandler;
-        $this->gta5ProtocolHandler = $gta5ProtocolHandler;
-        $this->rustProtocolHandler = $rustProtocolHandler;
+        $this->queryService = $queryService;
+        $this->rconService = $rconService;
         $this->cacheService = $cacheService;
         $this->mapImageService = $mapImageService;
         $this->statsService = $statsService;
+        $this->pingService = $pingService;
     }
 
     public function getAllServers(bool $forceRefresh = false): array
@@ -138,12 +107,18 @@ class MonitoringService
 
     public function getActiveServers(): array
     {
-        return array_filter($this->getAllServers(), static fn($serverData) => $serverData['server']->enabled && ($serverData['status']->online === true));
+        return array_filter(
+            $this->getAllServers(),
+            static fn($serverData) => $serverData['server']->enabled && $serverData['status']->online === true,
+        );
     }
 
     public function getInactiveServers(): array
     {
-        return array_filter($this->getAllServers(), static fn($serverData) => $serverData['server']->enabled && ($serverData['status']->online === false));
+        return array_filter(
+            $this->getAllServers(),
+            static fn($serverData) => $serverData['server']->enabled && $serverData['status']->online === false,
+        );
     }
 
     public function updateServerStatus(Server $server): ?ServerStatus
@@ -153,15 +128,8 @@ class MonitoringService
         $status->online = false;
 
         try {
-            $protocol = $this->getGameProtocol($server->mod);
-            $handler = $this->getProtocolHandler($protocol);
-
-            if ($handler) {
-                $handler->updateStatus($server, $status);
-            } else {
-                $serverId = $this->getServerIdentifier($server);
-                logs()->warning("No protocol handler for server {$serverId} protocol {$protocol}");
-            }
+            $queryResult = $this->queryService->query($server, self::CONNECTION_TIMEOUT);
+            $this->applyQueryResult($queryResult, $status, $server);
         } catch (Exception $e) {
             $serverId = $this->getServerIdentifier($server);
             logs()->error("Error updating server status for {$serverId}: {$e->getMessage()}");
@@ -186,18 +154,16 @@ class MonitoringService
         $status->online = false;
 
         try {
-            $protocol = $this->getGameProtocol($mod);
-            $handler = $this->getProtocolHandler($protocol);
+            $queryResult = $this->queryService->queryRaw($ip, $port, $mod, self::CONNECTION_TIMEOUT);
 
-            if ($handler) {
-                $tempServer = new Server();
-                $tempServer->ip = $ip;
-                $tempServer->port = $port;
-                $tempServer->mod = $mod;
-                $tempServer->name = 'Test Server';
-                $tempServer->enabled = true;
-
-                $handler->updateStatus($tempServer, $status);
+            if ($queryResult->online) {
+                $status->online = true;
+                $status->players = $queryResult->players;
+                $status->max_players = $queryResult->maxPlayers;
+                $status->map = $queryResult->map;
+                $status->game = $queryResult->game;
+                $status->setPlayersData($this->formatPlayersData($queryResult));
+                $status->touch();
             }
         } catch (Exception $e) {
             $status->online = false;
@@ -210,63 +176,26 @@ class MonitoringService
     {
         $servers = $this->cacheService->getEnabledServers();
 
-        $serversByProtocol = [];
-        foreach ($servers as $server) {
-            $protocol = $this->getGameProtocol($server->mod);
-            if (!isset($serversByProtocol[$protocol])) {
-                $serversByProtocol[$protocol] = [];
-            }
-            $serversByProtocol[$protocol][] = $server;
-        }
+        // Measure pings BEFORE heavy query cycle to get clean network latency
+        $this->pingService->updatePings($servers);
 
-        foreach ($serversByProtocol as $protocol => $protocolServers) {
-            $handler = $this->getProtocolHandler($protocol);
-            if (!$handler) {
-                continue;
-            }
+        $batches = array_chunk($servers, self::BATCH_SIZE);
 
-            // Process servers in batches to avoid memory and timeout issues
-            $batches = array_chunk($protocolServers, self::BATCH_SIZE);
+        foreach ($batches as $batch) {
+            $this->processBatch($batch);
 
-            foreach ($batches as $batch) {
-                $this->processBatch($batch, $handler);
-
-                // Clear entity manager to free memory after each batch
-                if (method_exists(db(), 'getEntityManager')) {
-                    try {
-                        db()->getEntityManager()->clear();
-                    } catch (Throwable $e) {
-                        // Ignore
-                    }
+            // Clear entity manager to free memory after each batch
+            if (method_exists(db(), 'getEntityManager')) {
+                try {
+                    db()->getEntityManager()->clear();
+                } catch (Throwable $e) {
+                    // @mago-expect no-empty-catch-clause
                 }
             }
         }
 
         $this->pruneOldStatuses();
         $this->clearServersCache();
-    }
-
-    /**
-     * Process a batch of servers
-     */
-    protected function processBatch(array $servers, ProtocolHandlerInterface $handler): void
-    {
-        foreach ($servers as $server) {
-            try {
-                $status = new ServerStatus();
-                $status->server = $server;
-                $status->online = false;
-
-                $handler->updateStatus($server, $status);
-                if ($status->online && $status->game === self::GAME_CSGO) {
-                    $this->fetchAndAddSteamInfo($status);
-                }
-                $this->saveStatus($status);
-            } catch (Exception $e) {
-                $serverId = $this->getServerIdentifier($server);
-                logs()->error("Error updating server status for {$serverId}: {$e->getMessage()}");
-            }
-        }
     }
 
     public function setupCron(): void
@@ -287,18 +216,17 @@ class MonitoringService
     {
         $cacheKey = MonitoringCacheService::CACHE_KEY_TOTAL_PLAYERS;
 
-        return $this->cacheService->get(
-            $cacheKey,
-            fn() => $this->statsService->getTotalPlayersCount(),
-            60 // 1 minute
-        );
+        return $this->cacheService->get($cacheKey, fn() => $this->statsService->getTotalPlayersCount(), 60); // 1 minute
     }
 
     public function getServerStats(Server $server): ?array
     {
-        $dbMod = app(DatabaseService::class)->getConnectionInfoByServerId($server->id, [
-            'LR',
-        ]);
+        $dbMod = app(DatabaseService::class)->getConnectionInfoByServerId(
+            $server->id,
+            [
+                'LR',
+            ],
+        );
 
         return $dbMod;
     }
@@ -312,13 +240,17 @@ class MonitoringService
         $driver = $dbMod['connection'];
         $server = $dbMod['server'];
         $prefix = '';
-        $tableName = $dbMod['connection']->getAdditional()['table_name'] ?? "base";
+        $tableName = $dbMod['connection']->getAdditional()['table_name'] ?? 'base';
 
         if (!config('database.databases.' . $driver->dbname . '.prefix')) {
             $prefix = 'lvl_';
         }
 
-        $playerRank = db($driver->dbname)->select()->from($prefix . $tableName)->where('steam', 'like', '%' . $this->convertSteamIdToDatabaseId($steamId))->fetchAll();
+        $playerRank = db($driver->dbname)
+            ->select()
+            ->from($prefix . $tableName)
+            ->where('steam', 'like', '%' . $this->convertSteamIdToDatabaseId($steamId))
+            ->fetchAll();
 
         if (empty($playerRank)) {
             return '<img src="' . asset('assets/img/ranks/default/0.webp') . '" alt="0" loading="lazy">';
@@ -330,7 +262,166 @@ class MonitoringService
             return $server->getRank($playerRank['rank'] ?? 0, $playerRank['value'] ?? 0);
         }
 
-        return '<img src="' . asset('assets/img/ranks/' . ($server->ranks ?? 'default') . '/' . (!empty($playerRank['rank']) ? $playerRank['rank'] : '0') . '.' . ($server->ranks_format ?? 'webp')) . '" alt="' . $playerRank['rank'] . '" loading="lazy">';
+        return (
+            '<img src="'
+            . asset(
+                'assets/img/ranks/'
+                . ( $server->ranks ?? 'default' )
+                . '/'
+                . ( !empty($playerRank['rank']) ? $playerRank['rank'] : '0' )
+                . '.'
+                . ( $server->ranks_format ?? 'webp' ),
+            )
+            . '" alt="'
+            . $playerRank['rank']
+            . '" loading="lazy">'
+        );
+    }
+
+    /**
+     * Process a batch of servers using parallel queries where possible.
+     */
+    protected function processBatch(array $servers): void
+    {
+        // Batch query all servers in parallel
+        $queryResults = $this->queryService->queryBatch($servers, self::CONNECTION_TIMEOUT);
+
+        foreach ($servers as $server) {
+            try {
+                $status = new ServerStatus();
+                $status->server = $server;
+                $status->online = false;
+
+                $queryResult = $queryResults[$server->id] ?? new QueryResult();
+                $this->applyQueryResult($queryResult, $status, $server);
+
+                if ($status->online && $status->game === self::GAME_CSGO) {
+                    $this->fetchAndAddSteamInfo($status);
+                }
+
+                $this->saveStatus($status);
+            } catch (Exception $e) {
+                $serverId = $this->getServerIdentifier($server);
+                logs()->error("Error updating server status for {$serverId}: {$e->getMessage()}");
+            }
+        }
+    }
+
+    /**
+     * Apply query result to server status, with mm_getinfo RCON enrichment for CS2/CS:GO.
+     */
+    protected function applyQueryResult(QueryResult $queryResult, ServerStatus $status, Server $server): void
+    {
+        if (!$queryResult->online) {
+            $status->online = false;
+            $status->touch();
+
+            return;
+        }
+
+        // CS2/CS:GO with RCON: try mm_getinfo for accurate player data with Steam IDs
+        if ($server->mod === self::GAME_CSGO && !empty($server->rcon)) {
+            if ($this->tryMMInfoUpdate($queryResult, $status, $server)) {
+                return;
+            }
+        }
+
+        $status->online = true;
+        $status->players = $queryResult->players;
+        $status->max_players = $queryResult->maxPlayers;
+        $status->map = $queryResult->map;
+        $status->game = $queryResult->game;
+        $status->setPlayersData($this->formatPlayersData($queryResult));
+
+        // Store game description for CS2/CS:GO distinction and other metadata
+        if (!empty($queryResult->additional)) {
+            $meta = [];
+
+            if (isset($queryResult->additional['description'])) {
+                $meta['description'] = $queryResult->additional['description'];
+            }
+
+            if (isset($queryResult->additional['app_id'])) {
+                $meta['app_id'] = $queryResult->additional['app_id'];
+            }
+
+            if (isset($queryResult->additional['vac'])) {
+                $meta['vac'] = $queryResult->additional['vac'];
+            }
+
+            if (!empty($meta)) {
+                $status->setAdditional($meta);
+            }
+        }
+
+        $status->touch();
+    }
+
+    /**
+     * Try to get CS2/CS:GO player data via RCON mm_getinfo command.
+     * Returns Steam IDs and accurate player info for matchmaking servers.
+     */
+    protected function tryMMInfoUpdate(QueryResult $queryResult, ServerStatus $status, Server $server): bool
+    {
+        try {
+            if (!$this->rconService->isAvailable($server)) {
+                return false;
+            }
+
+            $mmInfo = $this->rconService->execute($server, 'mm_getinfo');
+
+            if (empty($mmInfo)) {
+                return false;
+            }
+
+            $mmData = json_decode($mmInfo, true);
+
+            if (!is_array($mmData) || !isset($mmData['players']) || !isset($mmData['current_map'])) {
+                return false;
+            }
+
+            $mmData['players'] = array_filter($mmData['players'], static fn($player) => $player['steamid'] !== '0');
+
+            // Preserve game description from A2S query for CS2/CS:GO distinction
+            if (isset($queryResult->additional['description'])) {
+                $mmData['description'] = $queryResult->additional['description'];
+            }
+
+            $status->online = true;
+            $status->players = count($mmData['players']);
+            $status->max_players = $queryResult->maxPlayers;
+            $status->map = $mmData['current_map'] ?? null;
+            $status->game = self::GAME_CSGO;
+            $status->setAdditional($mmData);
+            $status->setPlayersData($mmData['players']);
+            $status->touch();
+
+            return true;
+        } catch (Exception $e) {
+            logs()->debug("mm_getinfo error for server {$server->ip}:{$server->port}: {$e->getMessage()}");
+
+            return false;
+        }
+    }
+
+    /**
+     * Format QueryResult player data to monitoring storage format.
+     *
+     * @return array<int, array{Name: string, Score: int, Time: float}>
+     */
+    protected function formatPlayersData(QueryResult $queryResult): array
+    {
+        $formatted = [];
+
+        foreach ($queryResult->playersData as $player) {
+            $formatted[] = [
+                'Name' => $player['name'] ?? '',
+                'Score' => $player['score'] ?? 0,
+                'Time' => (int) ( $player['time'] ?? 0 ),
+            ];
+        }
+
+        return $formatted;
     }
 
     protected function fetchEnabledServersWithStatuses(?array $servers = null): array
@@ -403,69 +494,6 @@ class MonitoringService
         return $status;
     }
 
-    protected function getGameProtocol(string $mod): int
-    {
-        $protocolMap = [
-            self::GAME_CSGO => self::PROTOCOL_SOURCE,
-            self::GAME_CSS => self::PROTOCOL_SOURCE,
-            self::GAME_TF2 => self::PROTOCOL_SOURCE,
-            self::GAME_L4D2 => self::PROTOCOL_SOURCE,
-            '1002' => self::PROTOCOL_SOURCE,
-            '2400' => self::PROTOCOL_SOURCE,
-            self::GAME_GARRYSMOD => self::PROTOCOL_SOURCE,
-            '221100' => self::PROTOCOL_SOURCE,
-            '17710' => self::PROTOCOL_SOURCE,
-            '70000' => self::PROTOCOL_SOURCE,
-            '107410' => self::PROTOCOL_SOURCE,
-            '115300' => self::PROTOCOL_SOURCE,
-            '162107' => self::PROTOCOL_SOURCE,
-            '211820' => self::PROTOCOL_SOURCE,
-            '244850' => self::PROTOCOL_SOURCE,
-            '304930' => self::PROTOCOL_SOURCE,
-            '251570' => self::PROTOCOL_SOURCE,
-            '282440' => self::PROTOCOL_SOURCE,
-            '346110' => self::PROTOCOL_SOURCE,
-            '108600' => self::PROTOCOL_SOURCE,
-            '252490' => self::PROTOCOL_RUST, // Rust
-            'rust' => self::PROTOCOL_RUST,
-            self::GAME_CS16 => self::PROTOCOL_CS16,
-            'all_hl_games_mods' => self::PROTOCOL_CS16,
-            self::GAME_MINECRAFT => self::PROTOCOL_MINECRAFT,
-            self::GAME_GTA5 => self::PROTOCOL_GTA5,
-            self::GAME_SAMP => self::PROTOCOL_SAMP,
-            self::GAME_RUST => self::PROTOCOL_RUST,
-        ];
-
-        return $protocolMap[$mod] ?? self::PROTOCOL_SOURCE;
-    }
-
-    protected function getProtocolHandler(int $protocol): ?ProtocolHandlerInterface
-    {
-        switch ($protocol) {
-            case self::PROTOCOL_SOURCE:
-            case self::PROTOCOL_GOLDSRC:
-                return $this->sourceProtocolHandler;
-            case self::PROTOCOL_CS16:
-                return $this->cs16ProtocolHandler;
-            case self::PROTOCOL_MINECRAFT:
-                return $this->minecraftProtocolHandler;
-            case self::PROTOCOL_SAMP:
-                return $this->sampProtocolHandler;
-            case self::PROTOCOL_GTA5:
-                return $this->gta5ProtocolHandler;
-            case self::PROTOCOL_RUST:
-                return $this->rustProtocolHandler;
-            default:
-                return null;
-        }
-    }
-
-    protected function setServerOffline(ServerStatus $status): void
-    {
-        $status->online = false;
-        $status->touch();
-    }
-
     /**
      * Get server identifier for logging (safe for entities without ID)
      */
@@ -511,13 +539,11 @@ class MonitoringService
 
     protected function pruneOldStatuses(): void
     {
-        $threshold = (new DateTimeImmutable('now', new DateTimeZone(config('app.timezone', 'UTC'))))
-            ->modify('-' . self::STATUS_RETENTION_DAYS . ' days');
+        $threshold = ( new DateTimeImmutable('now', new DateTimeZone(config('app.timezone', 'UTC'))) )->modify(
+            '-' . self::STATUS_RETENTION_DAYS . ' days',
+        );
 
-        db()->delete()
-            ->from('server_statuses')
-            ->where('updated_at', '<', $threshold)
-            ->run();
+        db()->delete()->from('server_statuses')->where('updated_at', '<', $threshold)->run();
     }
 
     protected function setupScheduledMonitoring(): void
@@ -528,6 +554,7 @@ class MonitoringService
 
             if ($handle === false) {
                 logs()->warning('Monitoring cron: failed to open lock file');
+
                 return;
             }
 
@@ -535,6 +562,7 @@ class MonitoringService
             if (!@flock($handle, LOCK_EX | LOCK_NB)) {
                 @fclose($handle);
                 logs()->debug('Monitoring cron: skipped, previous execution still running');
+
                 return;
             }
 
@@ -559,10 +587,14 @@ class MonitoringService
             $this->cacheService->setRaw($countCacheKey, $currentServerCount, 999999999);
         }
 
-        $this->cacheService->get($statusCacheKey, function () use ($countCacheKey, $currentServerCount) {
-            $this->cacheService->setRaw($countCacheKey, $currentServerCount, 999999999);
-            $this->updateAllServersStatus();
-        }, $this->cacheService->getDefaultTtl());
+        $this->cacheService->get(
+            $statusCacheKey,
+            function () use ($countCacheKey, $currentServerCount) {
+                $this->cacheService->setRaw($countCacheKey, $currentServerCount, 999999999);
+                $this->updateAllServersStatus();
+            },
+            $this->cacheService->getDefaultTtl(),
+        );
     }
 
     protected function clearServersCache(): void
@@ -578,7 +610,7 @@ class MonitoringService
         }
 
         $signatureParts = array_map(static function (Server $server) {
-            $updatedTimestamp = ($server->updatedAt instanceof DateTimeInterface)
+            $updatedTimestamp = $server->updatedAt instanceof DateTimeInterface
                 ? $server->updatedAt->getTimestamp()
                 : 0;
 
@@ -595,6 +627,43 @@ class MonitoringService
         sort($signatureParts);
 
         return md5(json_encode($signatureParts));
+    }
+
+    /**
+     * Determine if a CS 730 server is CS:GO (legacy) rather than CS2.
+     * Returns true for CS:GO, false for CS2 or unknown.
+     */
+    public static function isCsgoLegacy(?ServerStatus $status): bool
+    {
+        if (!$status) {
+            return false;
+        }
+
+        $additional = $status->getAdditional();
+        $description = $additional['description'] ?? '';
+
+        // Primary check: description from A2S_INFO contains "Global Offensive"
+        return stripos($description, 'Global Offensive') !== false;
+    }
+
+    /**
+     * Get a human-readable game label for a server status.
+     */
+    public static function getGameLabel(?ServerStatus $status, ?Server $server = null): ?string
+    {
+        if (!$status) {
+            return null;
+        }
+
+        $game = $status->game;
+        $mod = $server->mod ?? $game;
+
+        // CS2 / CS:GO distinction
+        if ($mod === self::GAME_CSGO || $game === self::GAME_CSGO) {
+            return self::isCsgoLegacy($status) ? 'CS:GO' : null;
+        }
+
+        return null;
     }
 
     private function convertSteamIdToDatabaseId(int $steamId): int
@@ -616,7 +685,7 @@ class MonitoringService
 
         $players = &$additional['players'];
 
-        $steamIds = array_column($players, 'steamid');
+        $steamIds = array_filter(array_column($players, 'steamid'), static fn($id) => !empty($id) && $id !== '0');
 
         if (empty($steamIds)) {
             return;
@@ -625,16 +694,20 @@ class MonitoringService
         try {
             $steamInfo = steam()->getUsersInfo($steamIds);
 
-            foreach ($players as &$player) {
-                $player['steam_info'] = $steamInfo[$player['steamid']] ?? [];
-
-                try {
-                    if (class_exists('\\Flute\\Modules\\Monitoring\\Services\\FaceitRankService')) {
-                        $faceitRankService = app()->get('\\Flute\\Modules\\Monitoring\\Services\\FaceitRankService');
-                        $player['faceit_info'] = $faceitRankService->getFaceitPlayerInfo((int) $player['steamid']);
-                    }
-                } catch (Throwable $t) {
+            $faceitBulk = [];
+            try {
+                if (class_exists('\\Flute\\Modules\\Monitoring\\Services\\FaceitRankService')) {
+                    $faceitRankService = app()->get('\\Flute\\Modules\\Monitoring\\Services\\FaceitRankService');
+                    $faceitBulk = $faceitRankService->getBulkFaceitPlayerInfo(array_values($steamIds));
                 }
+            } catch (Throwable $t) {
+                // @mago-expect no-empty-catch-clause
+            }
+
+            foreach ($players as &$player) {
+                $sid = $player['steamid'] ?? '';
+                $player['steam_info'] = $steamInfo[$sid] ?? [];
+                $player['faceit_info'] = $faceitBulk[$sid] ?? null;
             }
 
             $status->setAdditional($additional);

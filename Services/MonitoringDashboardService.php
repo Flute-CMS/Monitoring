@@ -31,7 +31,7 @@ class MonitoringDashboardService
     public function __construct(
         MonitoringService $monitoringService,
         MonitoringStatsService $statsService,
-        MonitoringCacheService $cacheService
+        MonitoringCacheService $cacheService,
     ) {
         $this->monitoringService = $monitoringService;
         $this->statsService = $statsService;
@@ -47,9 +47,7 @@ class MonitoringDashboardService
         $statisticsSlug = \Illuminate\Support\Str::slug(__('monitoring.tabs.statistics'));
 
         if ($currentTab !== $statisticsSlug) {
-            $mainTab = Tab::make(__('monitoring.tabs.statistics'))
-                ->icon('ph.regular.chart-line')
-                ->layouts([]);
+            $mainTab = Tab::make(__('monitoring.tabs.statistics'))->icon('ph.regular.chart-line')->layouts([]);
 
             $dashboard->addTab($mainTab);
 
@@ -57,7 +55,11 @@ class MonitoringDashboardService
         }
 
         $cacheKey = MonitoringCacheService::CACHE_KEY_DASHBOARD_METRICS;
-        $metrics = $this->cacheService->get($cacheKey, fn () => $this->statsService->calculateMonitoringMetrics(), $this->cacheService->getDashboardTtl());
+        $metrics = $this->cacheService->get(
+            $cacheKey,
+            fn() => $this->statsService->calculateMonitoringMetrics(),
+            $this->cacheService->getDashboardTtl(),
+        );
 
         $metricsLayout = $this->createMetricsLayout();
 
@@ -106,9 +108,17 @@ class MonitoringDashboardService
     protected function createServerDistributionChart()
     {
         $cacheKey = MonitoringCacheService::CACHE_KEY_SERVER_DISTRIBUTION;
-        $serverDistribution = $this->cacheService->get($cacheKey, fn () => $this->statsService->getServerDistribution(), $this->cacheService->getDashboardTtl());
+        $serverDistribution = $this->cacheService->get(
+            $cacheKey,
+            fn() => $this->statsService->getServerDistribution(),
+            $this->cacheService->getDashboardTtl(),
+        );
 
-        if (!isset($serverDistribution['series']) || !isset($serverDistribution['labels']) || empty($serverDistribution['series'])) {
+        if (
+            !isset($serverDistribution['series'])
+            || !isset($serverDistribution['labels'])
+            || empty($serverDistribution['series'])
+        ) {
             $serverDistribution = [
                 'series' => [0],
                 'labels' => [__('monitoring.charts.no_data')],
@@ -133,18 +143,22 @@ class MonitoringDashboardService
 
         $hourlyTrafficData = $this->cacheService->get(
             $cacheKey,
-            fn () => $this->statsService->getHourlyTraffic($serverId),
-            $this->cacheService->getDashboardTtl()
+            fn() => $this->statsService->getHourlyTraffic($serverId),
+            $this->cacheService->getDashboardTtl(),
         );
 
-        if (!isset($hourlyTrafficData['series']) || !isset($hourlyTrafficData['labels']) || empty($hourlyTrafficData['series'])) {
+        if (
+            !isset($hourlyTrafficData['series'])
+            || !isset($hourlyTrafficData['labels'])
+            || empty($hourlyTrafficData['series'])
+        ) {
             $hourlyTrafficData = [
                 'series' => [['name' => __('monitoring.charts.no_data'), 'data' => array_fill(0, 24, 0)]],
-                'labels' => array_map(static fn ($i) => sprintf('%02d:00', $i), range(0, 23)),
+                'labels' => array_map(static fn($i) => sprintf('%02d:00', $i), range(0, 23)),
             ];
         }
 
-        $chartSlug = 'hourly_traffic' . ($serverId !== null ? "_server_{$serverId}" : '_all');
+        $chartSlug = 'hourly_traffic' . ( $serverId !== null ? "_server_{$serverId}" : '_all' );
 
         return Chart::make($chartSlug, __('monitoring.charts.hourly_traffic'))
             ->type('bar')
@@ -178,7 +192,6 @@ class MonitoringDashboardService
             $serverTabsLayout,
             $rightSideLayout,
         ])->ratio('60/40');
-
     }
 
     /**
@@ -192,7 +205,11 @@ class MonitoringDashboardService
         $allData = [];
         foreach ($periods as $period) {
             $cacheKey = MonitoringCacheService::CACHE_KEY_ALL_SERVERS_PREFIX . $period;
-            $allData[$period] = $this->cacheService->get($cacheKey, fn () => $this->statsService->getMultiServerStatistics($period), $this->cacheService->getDashboardTtl());
+            $allData[$period] = $this->cacheService->get(
+                $cacheKey,
+                fn() => $this->statsService->getMultiServerStatistics($period),
+                $this->cacheService->getDashboardTtl(),
+            );
         }
 
         foreach ($periods as $period) {
@@ -209,7 +226,7 @@ class MonitoringDashboardService
                 'day' => __('monitoring.tabs.daily_stats'),
                 'week' => __('monitoring.tabs.weekly_stats'),
                 'month' => __('monitoring.tabs.monthly_stats'),
-                default => __('monitoring.tabs.stats')
+                default => __('monitoring.tabs.stats'),
             };
 
             $chartName = "all_servers_{$period}";
@@ -245,23 +262,23 @@ class MonitoringDashboardService
             $serverData[$server->id] = [];
             foreach ($periods as $period) {
                 $cacheKey = MonitoringCacheService::CACHE_KEY_SERVER_STATS_PREFIX . "{$server->id}_{$period}";
-                $serverData[$server->id][$period] = $this->cacheService->get($cacheKey, fn () => $this->statsService->calculateServerStatistics($period, $server->id), $this->cacheService->getDashboardTtl());
+                $serverData[$server->id][$period] = $this->cacheService->get(
+                    $cacheKey,
+                    fn() => $this->statsService->calculateServerStatistics($period, $server->id),
+                    $this->cacheService->getDashboardTtl(),
+                );
             }
         }
 
         $allServersTab = Tab::make(__('monitoring.tabs.all_servers'));
         $allServersTab->layouts([
-            LayoutFactory::tabs($this->createTimePeriodTabs())
-                ->slug('all_servers_period_tabs')
-                ->lazyload(false),
+            LayoutFactory::tabs($this->createTimePeriodTabs())->slug('all_servers_period_tabs')->lazyload(false),
         ]);
 
         $tabs[] = $allServersTab;
 
         foreach ($servers as $server) {
-            $serverTab = Tab::make($server->name)
-                ->slug($server->id)
-                ->lazyload(false);
+            $serverTab = Tab::make($server->name)->slug($server->id)->lazyload(false);
 
             $periodTabs = [];
 
@@ -279,7 +296,7 @@ class MonitoringDashboardService
                     'day' => __('monitoring.tabs.daily_stats'),
                     'week' => __('monitoring.tabs.weekly_stats'),
                     'month' => __('monitoring.tabs.monthly_stats'),
-                    default => __('monitoring.tabs.stats')
+                    default => __('monitoring.tabs.stats'),
                 };
 
                 $chartName = "server_{$server->id}_{$period}";

@@ -35,24 +35,31 @@
     }
 @endphp
 
+<head>
+    @at(mm('Monitoring', 'Resources/assets/js/monitoring.js'))
+</head>
+
 <div class="monitoring-container">
     <header class="monitoring-header">
-        <h2>{{ __($trans . '.our_servers') }} <small class="text-muted">({{ $totalServers }})</small></h2>
+        <div class="monitoring-header__left">
+            <h2 class="monitoring-header__title">
+                {{ __($trans . '.our_servers') }}
+            </h2>
+            <div class="monitoring-header__meta">
+                <span class="monitoring-live-badge">
+                    <span class="monitoring-live-badge__dot"></span>
+                    {{ __($trans . '.live') }}
+                </span>
+                <span class="monitoring-header__server-count">{{ $totalServers }} {{ __($trans . '.servers_count') }}</span>
+            </div>
+        </div>
 
         @if ($showCountPlayers)
             <div class="monitoring-total">
-                <div class="monitoring-total-info">
-                    <p>{{ __($trans . '.player.total') }}:</p>
-                    <p class="monitoring-total-count">{{ $totalPlayers['players'] }} <span>/
-                            {{ $totalPlayers['max_players'] }}</span></p>
-                </div>
-                <div class="monitoring-total-progress" role="progressbar"
-                    aria-valuenow="{{ $totalPlayers['max_players'] > 0 ? ($totalPlayers['players'] / $totalPlayers['max_players']) * 100 : 0 }}"
-                    aria-valuemin="0" aria-valuemax="100">
-                    <div class="monitoring-total-progress-bar"
-                        style="width: {{ $totalPlayers['max_players'] > 0 ? ($totalPlayers['players'] / $totalPlayers['max_players']) * 100 : 0 }}%">
-                    </div>
-                </div>
+                <span class="monitoring-total-label">{{ __($trans . '.player.total') }}</span>
+                <span class="monitoring-total-num">
+                    {{ $totalPlayers['players'] }} <span>/ {{ $totalPlayers['max_players'] }}</span>
+                </span>
             </div>
         @endif
     </header>
@@ -66,7 +73,7 @@
             @include('monitoring::components.server-table', ['servers' => $tableServers, 'service' => $service])
         @endif
     @else
-        <div class="monitoring-grid monitoring-mode-{{ $displayMode }} mt-3">
+        <div class="monitoring-grid monitoring-mode-{{ $displayMode }}">
             @if (count($limitedActiveServers) === 0 && count($displayInactiveServers) === 0)
                 <div class="monitoring-empty">
                     <p>{{ __($trans . '.no_servers') }}</p>

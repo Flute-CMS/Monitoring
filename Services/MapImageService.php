@@ -50,19 +50,17 @@ class MapImageService
 
     protected function shouldFetchFromGametracker(ServerStatus $status, ?string $modDir): bool
     {
-        return $status->map
+        return (
+            $status->map
             && $status->map !== '-'
             && $modDir !== null
-            && $modDir !== MonitoringService::GAME_MINECRAFT;
+            && $modDir !== MonitoringService::GAME_MINECRAFT
+        );
     }
 
     protected function tryFetchMapImageFromGametracker(ServerStatus $status, string $modDir, string $mapPath): ?string
     {
-        $gametrackerUrl = sprintf(
-            'https://image.gametracker.com/images/maps/160x120/%s/%s.jpg',
-            $modDir,
-            $status->map
-        );
+        $gametrackerUrl = sprintf('https://image.gametracker.com/images/maps/160x120/%s/%s.jpg', $modDir, $status->map);
 
         $cacheKey = 'gametracker_map_' . $modDir . '_' . $status->map;
 
@@ -93,14 +91,18 @@ class MapImageService
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, MonitoringService::CONNECTION_TIMEOUT);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+        curl_setopt(
+            $ch,
+            CURLOPT_USERAGENT,
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        );
         curl_setopt($ch, CURLOPT_REFERER, 'https://www.gametracker.com/');
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         $imageContent = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        return ($imageContent && $httpCode === 200) ? $imageContent : null;
+        return $imageContent && $httpCode === 200 ? $imageContent : null;
     }
 
     protected function getDefaultMapImage(string $mod): string
@@ -130,6 +132,6 @@ class MapImageService
             MonitoringService::GAME_SAMP => MonitoringService::GAME_SAMP,
         ];
 
-        return $modMap[$mod] ?? ($modMap[$game] ?? null);
+        return $modMap[$mod] ?? $modMap[$game] ?? null;
     }
 }

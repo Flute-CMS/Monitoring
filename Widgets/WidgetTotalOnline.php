@@ -26,13 +26,26 @@ class WidgetTotalOnline extends AbstractWidget
 
     public function render(array $settings): string
     {
-        $totalPlayers = $this->monitoringService->getTotalPlayersCount();
         $allServers = $this->monitoringService->getAllServers();
-        $activeServersCount = count(array_filter($allServers, static fn ($s) => $s['server']->enabled && ($s['status']->online === true)));
+        $activeServers = array_filter(
+            $allServers,
+            static fn($s) => $s['server']->enabled && $s['status']->online === true,
+        );
+
+        $totalPlayersOnline = 0;
+        $totalMaxPlayers = 0;
+
+        foreach ($activeServers as $serverData) {
+            $totalPlayersOnline += $serverData['status']->players ?? 0;
+            $totalMaxPlayers += $serverData['status']->max_players ?? 0;
+        }
 
         return view('monitoring::widgets.total-online', [
-            'totalPlayers' => $totalPlayers,
-            'activeServersCount' => $activeServersCount,
+            'totalPlayers' => [
+                'players' => $totalPlayersOnline,
+                'max_players' => $totalMaxPlayers,
+            ],
+            'activeServersCount' => count($activeServers),
             'totalServersCount' => count($allServers),
         ])->render();
     }

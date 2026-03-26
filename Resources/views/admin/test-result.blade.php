@@ -20,7 +20,6 @@
 @endphp
 
 <div class="mtest">
-    {{-- Header --}}
     <div class="mtest__header {{ $success ? 'mtest__header--success' : 'mtest__header--error' }}">
         <div class="mtest__status">
             @if ($success)
@@ -40,14 +39,12 @@
         </div>
     </div>
 
-    {{-- Error message --}}
     @if ($error && !$success)
         <div class="mtest__error">
             {{ $error }}
         </div>
     @endif
 
-    {{-- Server info --}}
     @if (!empty($data))
         <div class="mtest__grid">
             <div class="mtest__card">
@@ -95,7 +92,6 @@
             @endif
         </div>
 
-        {{-- CS2 Team scores --}}
         @if ($isCsGo && isset($additionalData['score_ct']) && isset($additionalData['score_t']))
             <div class="mtest__scores">
                 <div class="mtest__score mtest__score--ct">
@@ -110,7 +106,6 @@
             </div>
         @endif
 
-        {{-- Players list (RCON data for CS2) --}}
         @if ($hasRconPlayers)
             <div class="mtest__section">
                 <div class="mtest__section-header">
@@ -153,7 +148,6 @@
                     @endforeach
                 </div>
             </div>
-        {{-- Simple players list (non-RCON) --}}
         @elseif ($hasPlayers)
             <div class="mtest__section">
                 <div class="mtest__section-header">
@@ -181,7 +175,6 @@
             </div>
         @endif
 
-        {{-- Additional data --}}
         @if (!empty($additionalData) && !$isCsGo)
             <details class="mtest__details">
                 <summary>{{ __('monitoring.admin.additional_data') }}</summary>

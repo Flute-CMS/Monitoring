@@ -10,6 +10,8 @@ return [
     ],
     'server' => [
         'our_servers' => 'Our Servers',
+        'live' => 'LIVE',
+        'servers_count' => 'servers',
         'details' => 'Server Details',
         'ip' => 'IP Address',
         'status' => 'Status',
@@ -22,6 +24,8 @@ return [
         'maintenance' => 'The server is currently offline or undergoing maintenance.',
         'unavailable' => 'Unable to retrieve server data. The server may be temporarily unavailable.',
         'cron_message' => 'You have enabled CRON mode. If you have not configured anything, disable it in the main settings.',
+        'your_ping' => 'Your Ping',
+        'ping_measuring' => 'Measuring ping...',
         'no_players' => 'No players on the server',
         'player_list' => 'Players on the server',
         'empty_players_alert' => 'If player names do not appear in the monitoring, check for the presence of <a target="_blank" href=":url">this plugin</a> on the server.',
@@ -145,13 +149,13 @@ return [
         'cache_cleared' => 'Monitoring cache cleared successfully',
         'servers_refreshed' => 'All server statuses updated',
         'refresh_error' => 'Error updating servers',
-        
+
         'section_general' => 'General Settings',
         'section_display' => 'Display',
         'section_defaults' => 'Default Settings',
         'section_integrations' => 'Integrations',
         'section_servers_status' => 'Server Status',
-        
+
         'connection_timeout' => 'Connection timeout (sec)',
         'connection_timeout_help' => 'Time to wait for server response in seconds',
         'batch_size' => 'Batch size',
@@ -160,28 +164,28 @@ return [
         'cache_ttl_help' => 'Server status cache lifetime',
         'status_retention_days' => 'History retention (days)',
         'status_retention_days_help' => 'How many days to keep server status history',
-        
+
         'show_navbar_online' => 'Show online in navbar',
         'show_navbar_online_help' => 'Display the number of players online in site navigation',
         'show_offline_servers' => 'Show offline servers',
         'show_offline_servers_help' => 'Display disabled servers in monitoring',
         'show_player_details' => 'Show player details',
         'show_player_details_help' => 'Display detailed information about players on the server',
-        
+
         'default_display_mode' => 'Default display mode',
         'default_display_mode_help' => 'Default monitoring widget display mode',
         'default_servers_limit' => 'Default server limit',
         'default_servers_limit_help' => 'Maximum number of servers to display',
-        
+
         'faceit_enabled' => 'Enable FACEIT',
         'faceit_enabled_help' => 'Display FACEIT statistics for CS2 players',
         'faceit_api_key' => 'FACEIT API key',
         'faceit_api_key_help' => 'API key for accessing FACEIT API',
-        
+
         'no_servers_configured' => 'No servers configured.',
         'add_server' => 'Add server',
         'offline' => 'Offline',
-        
+
         'test_title' => 'Server Connection Test',
         'test_description' => 'Test server connection and data retrieval',
         'test_settings' => 'Test Parameters',
@@ -198,7 +202,7 @@ return [
         'timeout' => 'Timeout (sec)',
         'timeout_help' => 'Time to wait for server response',
         'run_test' => 'Run test',
-        
+
         'test_success' => 'Connection successful',
         'test_failed' => 'Connection failed',
         'error' => 'Error',

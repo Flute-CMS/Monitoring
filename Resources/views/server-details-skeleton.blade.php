@@ -1,65 +1,34 @@
 <div class="server-details-skeleton">
-    <div class="server-details-header">
-        <div class="server-details-image-skeleton">
-            <div class="skeleton"></div>
-        </div>
-        
-        <div class="server-details-info">
-            <div class="server-details-info-grid">
-                <div class="skeleton-item">
-                    <div class="skeleton skeleton-label"></div>
-                    <div class="skeleton skeleton-value"></div>
-                </div>
-                <div class="skeleton-item">
-                    <div class="skeleton skeleton-label"></div>
-                    <div class="skeleton skeleton-value"></div>
-                </div>
-                <div class="skeleton-item">
-                    <div class="skeleton skeleton-label"></div>
-                    <div class="skeleton skeleton-value"></div>
-                </div>
-                <div class="skeleton-item">
-                    <div class="skeleton skeleton-label"></div>
-                    <div class="skeleton skeleton-value"></div>
-                </div>
+    <div class="skeleton-left">
+        <div class="skeleton skeleton-bg"></div>
+        <div class="skeleton-left-content">
+            <div class="skeleton skeleton-title-lg"></div>
+            <div class="skeleton skeleton-subtitle"></div>
+            <div class="skeleton-pills">
+                <div class="skeleton skeleton-pill"></div>
+                <div class="skeleton skeleton-pill skeleton-pill--sm"></div>
+                <div class="skeleton skeleton-pill"></div>
             </div>
+            <div class="skeleton skeleton-ip"></div>
+            <div class="skeleton skeleton-btn"></div>
         </div>
     </div>
-    
-    <div class="server-details-players-skeleton">
-        <div class="skeleton-header">
+
+    <div class="skeleton-right">
+        <div class="skeleton-right-header">
             <div class="skeleton skeleton-title"></div>
             <div class="skeleton skeleton-search"></div>
         </div>
-        
-        <div class="skeleton-table-wrapper">
-            <div class="skeleton-table">
-                <div class="skeleton-table-header">
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
+        <div class="skeleton-right-rows">
+            @for ($i = 0; $i < 8; $i++)
+                <div class="skeleton-row">
+                    <div class="skeleton skeleton-avatar"></div>
+                    <div class="skeleton skeleton-name" style="width: {{ rand(80, 150) }}px"></div>
+                    <div class="skeleton skeleton-stat"></div>
+                    <div class="skeleton skeleton-stat skeleton-stat--sm"></div>
+                    <div class="skeleton skeleton-stat skeleton-stat--sm"></div>
                 </div>
-                <div class="skeleton-table-row">
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
-                </div>
-                <div class="skeleton-table-row">
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
-                </div>
-                <div class="skeleton-table-row">
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
-                </div>
-                <div class="skeleton-table-row">
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
-                    <div class="skeleton skeleton-cell"></div>
-                </div>
-            </div>
+            @endfor
         </div>
     </div>
-</div> 
+</div>

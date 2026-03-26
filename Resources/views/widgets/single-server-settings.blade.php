@@ -28,4 +28,4 @@
             label="{{ __('monitoring.single_server.hide_modal') }}" />
         <x-fields.small>{{ __('monitoring.single_server.hide_modal_help') }}</x-fields.small>
     </x-forms.field>
-</form> 
+</form>

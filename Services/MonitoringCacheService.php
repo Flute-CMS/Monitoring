@@ -28,6 +28,8 @@ class MonitoringCacheService
 
     public const CACHE_KEY_SERVERS_LIST = 'monitoring_enabled_servers_list';
 
+    public const CACHE_KEY_PING_PREFIX = 'monitoring_ping_';
+
     public const CACHE_TTL_DASHBOARD = 300;
 
     public const CACHE_TTL_DASHBOARD_PERFORMANCE = 600;
@@ -86,11 +88,15 @@ class MonitoringCacheService
 
     public function getEnabledServers(): array
     {
-        $serverData = $this->get(self::CACHE_KEY_SERVERS_LIST, static function () {
-            $servers = Server::findAll(['enabled' => true]);
+        $serverData = $this->get(
+            self::CACHE_KEY_SERVERS_LIST,
+            static function () {
+                $servers = Server::findAll(['enabled' => true]);
 
-            return array_map(static fn ($s) => $s->id, $servers);
-        }, 300);
+                return array_map(static fn($s) => $s->id, $servers);
+            },
+            300,
+        );
 
         if (empty($serverData)) {
             return [];

@@ -3,8 +3,8 @@
     $hasError = isset($status->online) && !$status->online;
     $trans = 'monitoring.server';
     $serverId = $server->id;
-    $isCsGo = $status->game === '730' && !empty($status->additional);
-    $additionalData = $isCsGo ? json_decode($status->additional, true) : null;
+    $additionalData = !empty($status->additional) ? json_decode($status->additional, true) : null;
+    $isCsGo = $status->game === '730' && !empty($additionalData['players']);
 @endphp
 
 <head>

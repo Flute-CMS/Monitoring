@@ -4,6 +4,10 @@
     $isInactive = !isset($status->online) || !$status->online;
 @endphp
 
+<head>
+    @at(mm('Monitoring', 'Resources/assets/js/monitoring.js'))
+</head>
+
 <div class="monitoring-container monitoring-single-server">
     <div class="monitoring-mode-{{ $displayMode ?? 'standard' }}">
         <div class="monitoring-single-server-content">

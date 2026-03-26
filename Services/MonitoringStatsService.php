@@ -48,7 +48,7 @@ class MonitoringStatsService
             return [];
         }
 
-        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+        $serverIds = array_map(static fn($s) => $s->id, $servers);
         $yesterday = new DateTimeImmutable('-24 hours');
 
         $allStatuses = ServerStatus::query()
@@ -96,7 +96,7 @@ class MonitoringStatsService
 
     public function getServerStatistics(string $period = 'day', ?int $serverId = null): array
     {
-        $cacheKey = $period . '_' . ($serverId ?? 'all');
+        $cacheKey = $period . '_' . ( $serverId ?? 'all' );
         if (!empty($this->serverStatistics[$cacheKey])) {
             return $this->serverStatistics[$cacheKey];
         }
@@ -123,7 +123,7 @@ class MonitoringStatsService
 
     public function calculateServerStatistics(string $period = 'day', ?int $serverId = null): array
     {
-        $cacheKey = $period . '_' . ($serverId ?? 'all');
+        $cacheKey = $period . '_' . ( $serverId ?? 'all' );
         if (!empty($this->serverStatistics[$cacheKey . '_calculated'])) {
             return $this->serverStatistics[$cacheKey . '_calculated'];
         }
@@ -149,7 +149,7 @@ class MonitoringStatsService
             $maxPlayersData,
             $maxPlayersInPeriod,
             $interval,
-            $serverId
+            $serverId,
         );
 
         if (!$serverId) {
@@ -162,7 +162,13 @@ class MonitoringStatsService
             }
         }
 
-        $result = $this->formatStatisticsResult($serverId, $playersData, $maxPlayersInPeriod, $serversData, $timeRanges['labels']);
+        $result = $this->formatStatisticsResult(
+            $serverId,
+            $playersData,
+            $maxPlayersInPeriod,
+            $serversData,
+            $timeRanges['labels'],
+        );
         $this->serverStatistics[$cacheKey . '_calculated'] = $result;
 
         return $result;
@@ -188,14 +194,17 @@ class MonitoringStatsService
                 $maxCapacity += $status->max_players;
             }
         }
-        $fillRate = $maxCapacity > 0 ? ($totalPlayers / $maxCapacity) * 100 : 0;
+        $fillRate = $maxCapacity > 0 ? ( $totalPlayers / $maxCapacity ) * 100 : 0;
         $yesterdayStats = $this->getYesterdayStats();
         $yesterdayPlayers = $this->calculateYesterdayPlayers($yesterdayStats);
-        $playersDiff = $yesterdayPlayers > 0 ? (($totalPlayers - $yesterdayPlayers) / $yesterdayPlayers) * 100 : 0;
+        $playersDiff = $yesterdayPlayers > 0 ? ( ( $totalPlayers - $yesterdayPlayers ) / $yesterdayPlayers ) * 100 : 0;
 
         $this->monitoringMetrics = [
             'total_servers' => ['value' => $totalServers, 'diff' => 0],
-            'online_servers' => ['value' => $onlineServers, 'diff' => $totalServers > 0 ? ($onlineServers / $totalServers) * 100 : 0],
+            'online_servers' => [
+                'value' => $onlineServers,
+                'diff' => $totalServers > 0 ? ( $onlineServers / $totalServers ) * 100 : 0,
+            ],
             'total_players' => ['value' => $totalPlayers, 'diff' => round($playersDiff, 1)],
             'servers_fill' => ['value' => round($fillRate, 1) . '%', 'diff' => 0],
         ];
@@ -224,7 +233,7 @@ class MonitoringStatsService
             $gameMap[$game]['players'] += $status->players;
         }
 
-        uasort($gameMap, static fn ($a, $b) => $b['players'] - $a['players']);
+        uasort($gameMap, static fn($a, $b) => $b['players'] - $a['players']);
         $gameMap = array_slice($gameMap, 0, 5, true);
 
         $data = [];
@@ -259,7 +268,7 @@ class MonitoringStatsService
             ];
         }
 
-        uasort($serverMap, static fn ($a, $b) => $b['players'] - $a['players']);
+        uasort($serverMap, static fn($a, $b) => $b['players'] - $a['players']);
         $serverMap = array_slice($serverMap, 0, 5, true);
 
         $data = [];
@@ -277,7 +286,7 @@ class MonitoringStatsService
     public function getMultiServerStatistics(string $period = 'day'): array
     {
         $selectedServerId = request()->input('tab-server_tabs');
-        $cacheKey = $period . '_' . ($selectedServerId ?? 'all');
+        $cacheKey = $period . '_' . ( $selectedServerId ?? 'all' );
 
         if (!empty($this->multiServerStats[$cacheKey])) {
             return $this->multiServerStats[$cacheKey];
@@ -328,16 +337,14 @@ class MonitoringStatsService
             return [];
         }
 
-        $servers = $serverId
-            ? [Server::findByPK($serverId)]
-            : $this->cacheService->getEnabledServers();
+        $servers = $serverId ? [Server::findByPK($serverId)] : $this->cacheService->getEnabledServers();
 
         $servers = array_filter($servers);
         if (empty($servers)) {
             return [];
         }
 
-        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+        $serverIds = array_map(static fn($s) => $s->id, $servers);
 
         $allStatuses = ServerStatus::query()
             ->load('server')
@@ -355,16 +362,14 @@ class MonitoringStatsService
             return [];
         }
 
-        $servers = $serverId
-            ? [Server::findByPK($serverId)]
-            : $this->cacheService->getEnabledServers();
+        $servers = $serverId ? [Server::findByPK($serverId)] : $this->cacheService->getEnabledServers();
 
         $servers = array_filter($servers);
         if (empty($servers)) {
             return [];
         }
 
-        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+        $serverIds = array_map(static fn($s) => $s->id, $servers);
 
         $allStatuses = ServerStatus::query()
             ->load('server')
@@ -399,7 +404,7 @@ class MonitoringStatsService
         array &$maxPlayersData,
         array &$maxPlayersInPeriod,
         string $interval,
-        ?int $targetServerId
+        ?int $targetServerId,
     ): void {
         $timezone = config('app.timezone', 'UTC');
 
@@ -461,7 +466,7 @@ class MonitoringStatsService
         array &$playersData,
         array &$maxPlayersData,
         array &$serversData,
-        array &$countData
+        array &$countData,
     ): void {
         for ($i = 0; $i < count($serverTracker); $i++) {
             if (!empty($serverTracker[$i])) {
@@ -488,7 +493,7 @@ class MonitoringStatsService
         array $playersData,
         array $maxPlayersInPeriod,
         array $serversData,
-        array $labels
+        array $labels,
     ): array {
         if ($serverId) {
             return [
@@ -507,7 +512,6 @@ class MonitoringStatsService
             ],
             'labels' => $labels,
         ];
-
     }
 
     protected function getIntervalForPeriod(string $period): string
@@ -584,7 +588,7 @@ class MonitoringStatsService
             return [];
         }
 
-        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+        $serverIds = array_map(static fn($s) => $s->id, $servers);
 
         $query = ServerStatus::query()
             ->load('server')
@@ -611,7 +615,7 @@ class MonitoringStatsService
             return [];
         }
 
-        $serverIds = array_map(static fn ($s) => $s->id, $servers);
+        $serverIds = array_map(static fn($s) => $s->id, $servers);
 
         $allStatuses = ServerStatus::query()
             ->load('server')
@@ -667,7 +671,7 @@ class MonitoringStatsService
         foreach ($statistics as $stat) {
             if ($stat->online) {
                 $date = Carbon::parse($stat->updated_at)->timezone($timezone);
-                $hour = (int)$date->format('G');
+                $hour = (int) $date->format('G');
                 $hourlyData[$hour]['players'] += $stat->players;
                 $hourlyData[$hour]['max_players'] += $stat->max_players;
                 $hourlyData[$hour]['count']++;
@@ -683,7 +687,7 @@ class MonitoringStatsService
         $maxPlayersData = [];
         $labels = [];
         for ($hour = 0; $hour < 24; $hour++) {
-            $labels[] = sprintf("%02d:00", $hour);
+            $labels[] = sprintf('%02d:00', $hour);
             if ($hourlyData[$hour]['count'] > 0) {
                 $playersData[] = round($hourlyData[$hour]['players'] / $hourlyData[$hour]['count']);
                 $maxPlayersData[] = round($hourlyData[$hour]['max_players'] / $hourlyData[$hour]['count']);

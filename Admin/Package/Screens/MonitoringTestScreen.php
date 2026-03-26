@@ -9,14 +9,18 @@ use Flute\Admin\Platform\Layouts\LayoutFactory;
 use Flute\Admin\Platform\Screen;
 use Flute\Core\Database\Entities\Server;
 use Flute\Modules\Monitoring\Services\MonitoringService;
+use Throwable;
 
 class MonitoringTestScreen extends Screen
 {
     public ?string $name = null;
+
     public ?string $description = null;
+
     public ?string $permission = 'admin.servers';
 
     protected ?Server $server = null;
+
     protected ?array $testResult = null;
 
     public function mount(): void
@@ -24,10 +28,10 @@ class MonitoringTestScreen extends Screen
         $this->name = __('monitoring.admin.test_title');
         $this->description = __('monitoring.admin.test_description');
 
-        breadcrumb()
-            ->add(__('def.admin_panel'), url('/admin'))
-            ->add(__('monitoring.admin.title'), url('/admin/monitoring'))
-            ->add(__('monitoring.admin.test_title'));
+        breadcrumb()->add(__('def.admin_panel'), url('/admin'))->add(
+            __('monitoring.admin.title'),
+            url('/admin/monitoring'),
+        )->add(__('monitoring.admin.test_title'));
 
         $serverId = request()->request->get('id');
         if ($serverId) {
@@ -42,12 +46,8 @@ class MonitoringTestScreen extends Screen
     public function commandBar(): array
     {
         return [
-            Button::make(__('monitoring.admin.back'))
-                ->icon('ph.regular.arrow-left')
-                ->href(url('/admin/monitoring')),
-            Button::make(__('monitoring.admin.run_test'))
-                ->icon('ph.regular.play')
-                ->method('testConnection'),
+            Button::make(__('monitoring.admin.back'))->icon('ph.regular.arrow-left')->href(url('/admin/monitoring')),
+            Button::make(__('monitoring.admin.run_test'))->icon('ph.regular.play')->method('testConnection'),
         ];
     }
 
@@ -64,9 +64,10 @@ class MonitoringTestScreen extends Screen
                 LayoutFactory::field(
                     Select::make('server_id')
                         ->options($serverOptions)
+                        ->aligned()
                         ->value(request()->input('server_id', $this->server?->id ?? ''))
                         ->placeholder(__('monitoring.admin.select_server'))
-                        ->empty(__('monitoring.admin.select_server'))
+                        ->empty(__('monitoring.admin.select_server')),
                 )->label(__('monitoring.admin.server')),
 
                 LayoutFactory::split([
@@ -74,8 +75,9 @@ class MonitoringTestScreen extends Screen
                         Input::make('custom_ip')
                             ->type('text')
                             ->value(request()->input('custom_ip', ''))
-                            ->placeholder('127.0.0.1')
-                    )->label(__('monitoring.admin.custom_ip'))
+                            ->placeholder('127.0.0.1'),
+                    )
+                        ->label(__('monitoring.admin.custom_ip'))
                         ->popover(__('monitoring.admin.custom_ip_help')),
 
                     LayoutFactory::field(
@@ -84,7 +86,7 @@ class MonitoringTestScreen extends Screen
                             ->value(request()->input('custom_port', ''))
                             ->placeholder('27015')
                             ->min(1)
-                            ->max(65535)
+                            ->max(65535),
                     )->label(__('monitoring.admin.custom_port')),
                 ])->ratio('70/30'),
 
@@ -99,8 +101,10 @@ class MonitoringTestScreen extends Screen
                             'gta5' => 'GTA V (FiveM/RageMP)',
                             'rust' => 'Rust',
                         ])
-                        ->value(request()->input('protocol', 'auto'))
-                )->label(__('monitoring.admin.protocol'))
+                        ->aligned()
+                        ->value(request()->input('protocol', 'auto')),
+                )
+                    ->label(__('monitoring.admin.protocol'))
                     ->popover(__('monitoring.admin.protocol_help')),
 
                 LayoutFactory::field(
@@ -108,8 +112,9 @@ class MonitoringTestScreen extends Screen
                         ->type('number')
                         ->value(request()->input('timeout', config('monitoring.connection_timeout', 3)))
                         ->min(1)
-                        ->max(30)
-                )->label(__('monitoring.admin.timeout'))
+                        ->max(30),
+                )
+                    ->label(__('monitoring.admin.timeout'))
                     ->popover(__('monitoring.admin.timeout_help')),
             ])->title(__('monitoring.admin.test_settings')),
         ];
@@ -161,6 +166,7 @@ class MonitoringTestScreen extends Screen
                 'data' => null,
                 'time' => 0,
             ];
+
             return;
         }
 
@@ -183,7 +189,7 @@ class MonitoringTestScreen extends Screen
             $status = $monitoringService->testServerConnection($ip, $port, $mod);
 
             $endTime = microtime(true);
-            $queryTime = round(($endTime - $startTime) * 1000, 2);
+            $queryTime = round(( $endTime - $startTime ) * 1000, 2);
 
             if ($status && $status->online) {
                 $this->testResult = [
@@ -214,9 +220,9 @@ class MonitoringTestScreen extends Screen
                     'time' => $queryTime,
                 ];
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $endTime = microtime(true);
-            $queryTime = round(($endTime - $startTime) * 1000, 2);
+            $queryTime = round(( $endTime - $startTime ) * 1000, 2);
 
             $this->testResult = [
                 'success' => false,

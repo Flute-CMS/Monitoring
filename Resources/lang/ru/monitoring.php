@@ -10,6 +10,8 @@ return [
     ],
     'server' => [
         'our_servers' => 'Наши серверы',
+        'live' => 'LIVE',
+        'servers_count' => 'серверов',
         'details' => 'Детали сервера',
         'ip' => 'IP адрес',
         'status' => 'Статус',
@@ -22,6 +24,8 @@ return [
         'maintenance' => 'Сервер в данный момент отключен или находится на техническом обслуживании.',
         'unavailable' => 'Не удалось получить данные о сервере. Возможно, сервер временно недоступен.',
         'cron_message' => 'У вас включен режим CRON. Если вы не ничего не настраивали, то выключите его в основных настройках.',
+        'your_ping' => 'Ваш пинг',
+        'ping_measuring' => 'Измеряем ваш пинг...',
         'no_players' => 'Нет игроков на сервере',
         'player_list' => 'Игроки на сервере',
         'empty_players_alert' => 'Если в мониторинге не показываются имена игроков, то проверьте наличие <a target="_blank" href=":url">этого плагина</a> на сервере.',
@@ -145,13 +149,13 @@ return [
         'cache_cleared' => 'Кэш мониторинга успешно очищен',
         'servers_refreshed' => 'Статусы всех серверов обновлены',
         'refresh_error' => 'Ошибка при обновлении серверов',
-        
+
         'section_general' => 'Основные настройки',
         'section_display' => 'Отображение',
         'section_defaults' => 'Настройки по умолчанию',
         'section_integrations' => 'Интеграции',
         'section_servers_status' => 'Статус серверов',
-        
+
         'connection_timeout' => 'Таймаут подключения (сек)',
         'connection_timeout_help' => 'Время ожидания ответа от сервера в секундах',
         'batch_size' => 'Размер пакета',
@@ -160,28 +164,28 @@ return [
         'cache_ttl_help' => 'Время жизни кэша статусов серверов',
         'status_retention_days' => 'Хранение истории (дней)',
         'status_retention_days_help' => 'Сколько дней хранить историю статусов серверов',
-        
+
         'show_navbar_online' => 'Показывать онлайн в навбаре',
         'show_navbar_online_help' => 'Отображать количество игроков онлайн в навигации сайта',
         'show_offline_servers' => 'Показывать офлайн серверы',
         'show_offline_servers_help' => 'Отображать выключенные серверы в мониторинге',
         'show_player_details' => 'Показывать детали игроков',
         'show_player_details_help' => 'Отображать подробную информацию об игроках на сервере',
-        
+
         'default_display_mode' => 'Режим отображения по умолчанию',
         'default_display_mode_help' => 'Режим отображения виджета мониторинга по умолчанию',
         'default_servers_limit' => 'Лимит серверов по умолчанию',
         'default_servers_limit_help' => 'Максимальное количество серверов для отображения',
-        
+
         'faceit_enabled' => 'Включить FACEIT',
         'faceit_enabled_help' => 'Отображать FACEIT статистику для игроков CS2',
         'faceit_api_key' => 'FACEIT API ключ',
         'faceit_api_key_help' => 'API ключ для доступа к FACEIT API',
-        
+
         'no_servers_configured' => 'Нет настроенных серверов.',
         'add_server' => 'Добавить сервер',
         'offline' => 'Офлайн',
-        
+
         'test_title' => 'Тест подключения к серверу',
         'test_description' => 'Проверьте подключение к серверу и получение данных',
         'test_settings' => 'Параметры теста',
@@ -198,7 +202,7 @@ return [
         'timeout' => 'Таймаут (сек)',
         'timeout_help' => 'Время ожидания ответа от сервера',
         'run_test' => 'Запустить тест',
-        
+
         'test_success' => 'Подключение успешно',
         'test_failed' => 'Ошибка подключения',
         'error' => 'Ошибка',

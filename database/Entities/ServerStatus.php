@@ -18,34 +18,34 @@ use Flute\Core\Database\Entities\Server;
 #[Index(columns: ['server_id', 'updated_at'], name: 'idx_server_updated')]
 class ServerStatus extends ActiveRecord
 {
-    #[Column(type: "primary")]
+    #[Column(type: 'primary')]
     public int $id;
 
     #[BelongsTo(target: Server::class)]
     public Server $server;
 
-    #[Column(type: "boolean", default: false)]
+    #[Column(type: 'boolean', default: false)]
     public bool $online = false;
 
-    #[Column(type: "int", default: 0)]
+    #[Column(type: 'int', default: 0)]
     public int $players = 0;
 
-    #[Column(type: "int", default: 0)]
+    #[Column(type: 'int', default: 0)]
     public int $max_players = 0;
 
-    #[Column(type: "string", nullable: true)]
+    #[Column(type: 'string', nullable: true)]
     public ?string $map = null;
 
-    #[Column(type: "string", nullable: true)]
+    #[Column(type: 'string', nullable: true)]
     public ?string $game = null;
 
-    #[Column(type: "json", nullable: true)]
+    #[Column(type: 'json', nullable: true)]
     public ?string $players_data = null;
 
-    #[Column(type: "json", nullable: true)]
+    #[Column(type: 'json', nullable: true)]
     public ?string $additional = null;
 
-    #[Column(type: "datetime")]
+    #[Column(type: 'datetime')]
     public DateTimeImmutable $updated_at;
 
     public function __construct()
@@ -66,7 +66,8 @@ class ServerStatus extends ActiveRecord
      */
     public function setPlayersData(array $data): void
     {
-        $this->players_data = json_encode($data);
+        $json = json_encode($data, JSON_INVALID_UTF8_SUBSTITUTE);
+        $this->players_data = $json !== false ? $json : '[]';
     }
 
     public function getAdditional(): array
@@ -76,7 +77,8 @@ class ServerStatus extends ActiveRecord
 
     public function setAdditional(array $data): void
     {
-        $this->additional = json_encode($data);
+        $json = json_encode($data, JSON_INVALID_UTF8_SUBSTITUTE);
+        $this->additional = $json !== false ? $json : '[]';
     }
 
     /**

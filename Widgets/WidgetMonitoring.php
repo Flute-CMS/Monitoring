@@ -27,17 +27,33 @@ class WidgetMonitoring extends AbstractWidget
     public function render(array $settings): string
     {
         $allServers = $this->monitoringService->getAllServers();
-        $activeServers = array_filter($allServers, static fn ($s) => $s['server']->enabled && ($s['status']->online === true));
-        $inactiveServers = array_filter($allServers, static fn ($s) => $s['server']->enabled && ($s['status']->online === false));
-        $totalPlayers = $this->monitoringService->getTotalPlayersCount();
+        $activeServers = array_filter(
+            $allServers,
+            static fn($s) => $s['server']->enabled && $s['status']->online === true,
+        );
+        $inactiveServers = array_filter(
+            $allServers,
+            static fn($s) => $s['server']->enabled && $s['status']->online === false,
+        );
+
+        $totalPlayersOnline = 0;
+        $totalMaxPlayers = 0;
+
+        foreach ($activeServers as $serverData) {
+            $totalPlayersOnline += $serverData['status']->players ?? 0;
+            $totalMaxPlayers += $serverData['status']->max_players ?? 0;
+        }
 
         return view('monitoring::widgets.servers', [
             'activeServers' => $activeServers,
             'inactiveServers' => $inactiveServers,
-            'totalPlayers' => $totalPlayers,
+            'totalPlayers' => [
+                'players' => $totalPlayersOnline,
+                'max_players' => $totalMaxPlayers,
+            ],
             'totalServers' => count($allServers),
             'hideInactive' => filter_var($settings['hide_inactive'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'limit' => (int) ($settings['limit'] ?? 5),
+            'limit' => (int) ( $settings['limit'] ?? 5 ),
             'displayMode' => $settings['display_mode'] ?? 'standard',
             'showCountPlayers' => filter_var($settings['show_count_players'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'showPlaceholders' => filter_var($settings['show_placeholders'] ?? false, FILTER_VALIDATE_BOOLEAN),
@@ -61,7 +77,7 @@ class WidgetMonitoring extends AbstractWidget
     {
         return [
             'hide_inactive' => false,
-            'limit' => 5,
+            'limit' => 50,
             'display_mode' => 'standard',
             'show_placeholders' => true,
             'show_count_players' => true,
@@ -85,7 +101,7 @@ class WidgetMonitoring extends AbstractWidget
     {
         return [
             'hide_inactive' => isset($input['hide_inactive']),
-            'limit' => (int) ($input['limit'] ?? 5),
+            'limit' => (int) ( $input['limit'] ?? 5 ),
             'display_mode' => $input['display_mode'] ?? 'standard',
             'show_placeholders' => isset($input['show_placeholders']),
             'show_count_players' => isset($input['show_count_players']),

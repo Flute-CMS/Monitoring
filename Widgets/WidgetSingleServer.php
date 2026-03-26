@@ -26,7 +26,7 @@ class WidgetSingleServer extends AbstractWidget
 
     public function render(array $settings): string
     {
-        $serverId = (int)($settings['server_id'] ?? 0);
+        $serverId = (int) ( $settings['server_id'] ?? 0 );
 
         if (!$serverId) {
             return view('monitoring::widgets.single-server-empty')->render();
@@ -86,7 +86,7 @@ class WidgetSingleServer extends AbstractWidget
     public function saveSettings(array $input): array
     {
         return [
-            'server_id' => (int)($input['server_id'] ?? 0),
+            'server_id' => (int) ( $input['server_id'] ?? 0 ),
             'display_mode' => $input['display_mode'] ?? 'standard',
             'hide_modal' => isset($input['hide_modal']),
         ];

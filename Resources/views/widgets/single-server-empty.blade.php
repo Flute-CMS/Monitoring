@@ -6,4 +6,4 @@
     <div class="monitoring-empty">
         <p>{{ __('monitoring.server.no_server_selected') }}</p>
     </div>
-</div> 
+</div>
