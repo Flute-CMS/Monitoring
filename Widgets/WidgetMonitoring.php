@@ -57,6 +57,7 @@ class WidgetMonitoring extends AbstractWidget
             'displayMode' => $settings['display_mode'] ?? 'standard',
             'showCountPlayers' => filter_var($settings['show_count_players'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'showPlaceholders' => filter_var($settings['show_placeholders'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'showPing' => filter_var($settings['show_ping'] ?? true, FILTER_VALIDATE_BOOLEAN),
         ])->render();
     }
 
@@ -81,6 +82,7 @@ class WidgetMonitoring extends AbstractWidget
             'display_mode' => 'standard',
             'show_placeholders' => true,
             'show_count_players' => true,
+            'show_ping' => true,
         ];
     }
 
@@ -105,6 +107,7 @@ class WidgetMonitoring extends AbstractWidget
             'display_mode' => $input['display_mode'] ?? 'standard',
             'show_placeholders' => isset($input['show_placeholders']),
             'show_count_players' => isset($input['show_count_players']),
+            'show_ping' => isset($input['show_ping']),
         ];
     }
 }

@@ -28,4 +28,9 @@
             label="{{ __('monitoring.single_server.hide_modal') }}" />
         <x-fields.small>{{ __('monitoring.single_server.hide_modal_help') }}</x-fields.small>
     </x-forms.field>
+
+    <x-forms.field class="mb-4" style="max-width: 200px;">
+        <x-fields.checkbox name="show_ping" id="show_ping" :checked="$settings['show_ping'] ?? true"
+            label="{{ __('monitoring.settings.show_ping') }}" />
+    </x-forms.field>
 </form>

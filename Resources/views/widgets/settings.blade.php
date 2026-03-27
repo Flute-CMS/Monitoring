@@ -14,6 +14,11 @@
             label="{{ __('monitoring.settings.show_placeholders') }}" />
     </x-forms.field>
 
+    <x-forms.field class="mb-4">
+        <x-fields.checkbox name="show_ping" id="show_ping" checked="{{ $settings['show_ping'] ?? true }}"
+            label="{{ __('monitoring.settings.show_ping') }}" />
+    </x-forms.field>
+
     <x-forms.field class="mb-4"> 
         <x-forms.label for="limit">{{ __('monitoring.settings.servers_limit') }}</x-forms.label>
         <x-fields.input type="number" id="limit" name="limit" min="1" max="50" value="{{ $settings['limit'] ?? 5 }}" />

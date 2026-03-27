@@ -2,9 +2,12 @@
     $service = $app->get('monitoring.service');
     $trans = 'monitoring.server';
     $displayMode = $displayMode ?? 'standard';
+    $showPing = $showPing ?? true;
     $hasError = isset($status->online) && !$status->online;
     $isInactive = isset($isInactive) ? $isInactive : false;
     $isCsgoLegacy = \Flute\Modules\Monitoring\Services\MonitoringService::isCsgoLegacy($status);
+    $serverLat = $server->getSetting('lat');
+    $serverLon = $server->getSetting('lon');
 
     $players = $status->players ?? 0;
     $maxPlayers = $status->max_players ?? 0;
@@ -48,12 +51,14 @@
                             stroke-dashoffset="{{ $ringOffset }}" stroke-linecap="round" />
                     </svg>
                     <span class="card-players">{{ $players }}<span> / {{ $maxPlayers }}</span></span>
-                    <span class="card-ping" data-server-ping="{{ $server->id }}"
-                        data-ping-ip="{{ $server->ip }}" data-ping-port="{{ $server->port }}"
-                        data-tooltip="{{ __($trans . '.ping_measuring') }}">
-                        <x-icon path="ph.bold.wifi-high-bold" />
-                        <span class="server-ping-value">...</span>
-                    </span>
+                    @if ($showPing)
+                        <span class="card-ping" data-server-ping="{{ $server->id }}"
+                            @if ($serverLat && $serverLon) data-server-lat="{{ $serverLat }}" data-server-lon="{{ $serverLon }}" @endif
+                            data-tooltip="{{ __($trans . '.ping_measuring') }}">
+                            <x-icon path="ph.bold.wifi-high-bold" />
+                            <span class="server-ping-value">...</span>
+                        </span>
+                    @endif
                 @else
                     <span class="card-players card-players--off">0<span> / 0</span></span>
                 @endif
@@ -100,12 +105,14 @@
                             stroke-dashoffset="{{ $ringOffset }}" stroke-linecap="round" />
                     </svg>
                     <span class="card-players">{{ $players }}<span> / {{ $maxPlayers }}</span></span>
-                    <span class="card-ping" data-server-ping="{{ $server->id }}"
-                        data-ping-ip="{{ $server->ip }}" data-ping-port="{{ $server->port }}"
-                        data-tooltip="{{ __($trans . '.ping_measuring') }}">
-                        <x-icon path="ph.bold.wifi-high-bold" />
-                        <span class="server-ping-value">...</span>
-                    </span>
+                    @if ($showPing)
+                        <span class="card-ping" data-server-ping="{{ $server->id }}"
+                            @if ($serverLat && $serverLon) data-server-lat="{{ $serverLat }}" data-server-lon="{{ $serverLon }}" @endif
+                            data-tooltip="{{ __($trans . '.ping_measuring') }}">
+                            <x-icon path="ph.bold.wifi-high-bold" />
+                            <span class="server-ping-value">...</span>
+                        </span>
+                    @endif
                 @else
                     <svg class="card-ring card-ring--off" viewBox="0 0 36 36">
                         <circle cx="18" cy="18" r="15" fill="none" stroke-width="3" stroke="var(--transp-1)" />

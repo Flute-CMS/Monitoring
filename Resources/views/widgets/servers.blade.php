@@ -8,6 +8,8 @@
     $displayMode = $displayMode ?? 'standard';
     $showCountPlayers = isset($showCountPlayers) ? filter_var($showCountPlayers, FILTER_VALIDATE_BOOLEAN) : true;
     $showPlaceholders = isset($showPlaceholders) ? filter_var($showPlaceholders, FILTER_VALIDATE_BOOLEAN) : true;
+    $showPing = isset($showPing) ? filter_var($showPing, FILTER_VALIDATE_BOOLEAN) : true;
+    $userGeo = $showPing ? $service->getUserCoordinates() : null;
 
     $limitedActiveServers = array_slice($activeServers, 0, $limit);
     $displayInactiveServers = !$hideInactive
@@ -39,7 +41,8 @@
     @at(mm('Monitoring', 'Resources/assets/js/monitoring.js'))
 </head>
 
-<div class="monitoring-container">
+<div class="monitoring-container"
+    @if ($userGeo) data-user-lat="{{ $userGeo['lat'] }}" data-user-lon="{{ $userGeo['lon'] }}" @endif>
     <header class="monitoring-header">
         <div class="monitoring-header__left">
             <h2 class="monitoring-header__title">
@@ -70,7 +73,7 @@
                 <p>{{ __($trans . '.no_servers') }}</p>
             </div>
         @else
-            @include('monitoring::components.server-table', ['servers' => $tableServers, 'service' => $service])
+            @include('monitoring::components.server-table', ['servers' => $tableServers, 'service' => $service, 'showPing' => $showPing])
         @endif
     @else
         <div class="monitoring-grid monitoring-mode-{{ $displayMode }}">
@@ -85,6 +88,7 @@
                         'status' => $serverData['status'],
                         'displayMode' => $displayMode,
                         'isInactive' => false,
+                        'showPing' => $showPing,
                     ])
                 @endforeach
 
@@ -94,6 +98,7 @@
                         'status' => $serverData['status'],
                         'displayMode' => $displayMode,
                         'isInactive' => true,
+                        'showPing' => $showPing,
                     ])
                 @endforeach
 

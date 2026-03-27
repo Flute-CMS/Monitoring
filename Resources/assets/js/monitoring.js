@@ -53,91 +53,75 @@
         noPlayersFound.style.display = foundPlayers ? 'none' : '';
     }
 
-    var pingState = { fetched: false, fetching: false, data: {} };
-
-    function measureRtt(callback) {
-        var samples = [];
-        var count = 0;
-        var total = 3;
-        var rttUrl = (document.querySelector('meta[name="site_url"]') || {}).content || '/';
-        rttUrl = rttUrl.replace(/\/$/, '') + '/favicon.ico';
-
-        function sample() {
-            var t = performance.now();
-            fetch(rttUrl, { method: 'HEAD', cache: 'no-store', mode: 'no-cors' })
-                .then(function () { samples.push(Math.round(performance.now() - t)); })
-                .catch(function () { samples.push(Math.round(performance.now() - t)); })
-                .finally(function () {
-                    count++;
-                    if (count < total) {
-                        sample();
-                    } else {
-                        if (!samples.length) { callback(0); return; }
-                        samples.sort(function (a, b) { return a - b; });
-                        callback(samples[0]);
-                    }
-                });
+    var pingCache = {
+        _cache: {},
+        _key: function (sLat, sLon, uLat, uLon) {
+            return sLat + ',' + sLon + ',' + uLat + ',' + uLon;
+        },
+        get: function (sLat, sLon, uLat, uLon) {
+            return this._cache[this._key(sLat, sLon, uLat, uLon)];
+        },
+        set: function (sLat, sLon, uLat, uLon, val) {
+            this._cache[this._key(sLat, sLon, uLat, uLon)] = val;
         }
-        sample();
+    };
+
+    function calculateGeoPing(serverLat, serverLon, userLat, userLon) {
+        if (!userLat || !userLon) return 999;
+
+        var cachedPing = pingCache.get(serverLat, serverLon, userLat, userLon);
+        if (cachedPing !== undefined) return cachedPing;
+
+        var R = 6371e3;
+        var a1 = serverLat * Math.PI / 180;
+        var a2 = userLat * Math.PI / 180;
+        var dt = (userLat - serverLat) * Math.PI / 180;
+        var da = (userLon - serverLon) * Math.PI / 180;
+
+        var a = Math.sin(dt / 2) * Math.sin(dt / 2) +
+            Math.cos(a1) * Math.cos(a2) *
+            Math.sin(da / 2) * Math.sin(da / 2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        var distanceInMeters = R * c;
+        var ping = Math.floor(((1.92 * (distanceInMeters / 1000)) / 100));
+
+        pingCache.set(serverLat, serverLon, userLat, userLon, ping);
+        return ping;
+    }
+
+    function getUserGeo() {
+        var container = document.querySelector('.monitoring-container[data-user-lat]');
+        if (!container) return null;
+        var lat = parseFloat(container.dataset.userLat);
+        var lon = parseFloat(container.dataset.userLon);
+        if (isNaN(lat) || isNaN(lon)) return null;
+        return { lat: lat, lon: lon };
     }
 
     function initializeServerPing() {
-        if (typeof u !== 'function') return;
-
         var els = document.querySelectorAll('[data-server-ping]:not([data-ping-loaded])');
         if (!els.length) return;
 
-        if (pingState.fetched) {
-            applyPingToElements(els);
-            return;
-        }
+        var user = getUserGeo();
+        if (!user) return;
 
-        if (pingState.fetching) return;
-        pingState.fetching = true;
-
-        measureRtt(function (clientRtt) {
-            fetch(u('api/monitoring/pings'), { method: 'GET', cache: 'no-store' })
-                .then(function (r) { return r.json(); })
-                .then(function (raw) {
-                    pingState.fetching = false;
-                    pingState.data = {};
-
-                    var keys = Object.keys(raw || {});
-                    if (!keys.length) { pingState.fetched = false; return; }
-
-                    pingState.fetched = true;
-                    for (var i = 0; i < keys.length; i++) {
-                        var v = raw[keys[i]];
-                        pingState.data[keys[i]] = (v !== undefined && v !== -1) ? v + clientRtt : -1;
-                    }
-
-                    applyPingToElements(
-                        document.querySelectorAll('[data-server-ping]:not([data-ping-loaded])')
-                    );
-                })
-                .catch(function () {
-                    pingState.fetching = false;
-                    document.querySelectorAll('[data-server-ping]:not([data-ping-loaded])').forEach(function (el) {
-                        el.dataset.pingLoaded = '1';
-                        showPing(el, null);
-                    });
-                });
-        });
-    }
-
-    function applyPingToElements(elements) {
         var idx = 0;
-        elements.forEach(function (el) {
-            var id = el.dataset.serverPing;
-            var p = pingState.data[id];
-            var val = (p !== undefined && p !== -1) ? p : null;
+
+        els.forEach(function (el) {
+            var serverLat = parseFloat(el.dataset.serverLat);
+            var serverLon = parseFloat(el.dataset.serverLon);
+
+            if (isNaN(serverLat) || isNaN(serverLon)) return;
+
+            var ping = calculateGeoPing(serverLat, serverLon, user.lat, user.lon);
 
             (function (element, value, delay) {
                 setTimeout(function () {
                     element.dataset.pingLoaded = '1';
                     showPing(element, value);
                 }, delay);
-            })(el, val, idx * 80);
+            })(el, ping, idx * 80);
 
             idx++;
         });
@@ -171,9 +155,9 @@
 
     document.body.addEventListener('htmx:afterSettle', function (evt) {
         if (evt.target && evt.target.matches && evt.target.matches('#main')) {
-            pingState.fetched = false;
-            pingState.fetching = false;
-            pingState.data = {};
+            document.querySelectorAll('[data-server-ping]').forEach(function (el) {
+                delete el.dataset.pingLoaded;
+            });
 
             document.querySelectorAll('.server-details-modal').forEach(function (m) {
                 if (typeof closeModal === 'function') closeModal(m.id);

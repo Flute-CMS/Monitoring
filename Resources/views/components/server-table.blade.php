@@ -1,5 +1,6 @@
 @php
     $trans = 'monitoring.server';
+    $showPing = $showPing ?? true;
 @endphp
 
 <div class="monitoring-table-rows">
@@ -80,18 +81,20 @@
                     @endif
                 </div>
 
-                <div class="server-row-ping">
-                    @if ($showActions)
-                        <span class="server-ping-badge" data-server-ping="{{ $server->id }}"
-                            data-ping-ip="{{ $server->ip }}" data-ping-port="{{ $server->port }}"
-                            data-tooltip="{{ __($trans . '.ping_measuring') }}">
-                            <x-icon path="ph.bold.wifi-high-bold" />
-                            <span class="server-ping-value">...</span>
-                        </span>
-                    @else
-                        <span class="server-row-muted">—</span>
-                    @endif
-                </div>
+                @if ($showPing)
+                    <div class="server-row-ping">
+                        @if ($showActions)
+                            <span class="server-ping-badge" data-server-ping="{{ $server->id }}"
+                                @if ($server->getSetting('lat') && $server->getSetting('lon')) data-server-lat="{{ $server->getSetting('lat') }}" data-server-lon="{{ $server->getSetting('lon') }}" @endif
+                                data-tooltip="{{ __($trans . '.ping_measuring') }}">
+                                <x-icon path="ph.bold.wifi-high-bold" />
+                                <span class="server-ping-value">...</span>
+                            </span>
+                        @else
+                            <span class="server-row-muted">—</span>
+                        @endif
+                    </div>
+                @endif
             </div>
 
             @if ($showActions)

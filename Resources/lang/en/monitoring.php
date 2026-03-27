@@ -85,6 +85,7 @@ return [
         'show_count_players_help' => 'Show the total number of players on all servers in the widget.',
         'show_placeholders' => 'Show placeholders',
         'show_placeholders_help' => 'Show placeholders to fill the space.',
+        'show_ping' => 'Show ping',
     ],
     'tabs' => [
         'statistics' => 'Server Statistics',

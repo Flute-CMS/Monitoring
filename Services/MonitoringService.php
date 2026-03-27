@@ -55,6 +55,8 @@ class MonitoringService
 
     private MonitoringPingService $pingService;
 
+    private GeoIpService $geoIpService;
+
     private ?array $servers = null;
 
     private string $serversSignature = '';
@@ -66,13 +68,54 @@ class MonitoringService
         MapImageService $mapImageService,
         MonitoringStatsService $statsService,
         MonitoringPingService $pingService,
+        GeoIpService $geoIpService,
     ) {
         $this->queryService = $queryService;
         $this->rconService = $rconService;
         $this->cacheService = $cacheService;
         $this->mapImageService = $mapImageService;
         $this->statsService = $statsService;
+        $this->geoIpService = $geoIpService;
         $this->pingService = $pingService;
+    }
+
+    /**
+     * Get user coordinates by IP from request.
+     *
+     * @return array{lat: float, lon: float}|null
+     */
+    public function getUserCoordinates(): ?array
+    {
+        return $this->geoIpService->getCoordinates(request()->getClientIp());
+    }
+
+    /**
+     * Auto-fill server coordinates from IP if not set.
+     * Called during cron status update cycle.
+     *
+     * @param Server[] $servers
+     */
+    private function autoFillServerCoordinates(array $servers): void
+    {
+        foreach ($servers as $server) {
+            if (!$server->enabled) {
+                continue;
+            }
+
+            if ($server->getSetting('lat') && $server->getSetting('lon')) {
+                continue;
+            }
+
+            $coords = $this->geoIpService->getCoordinates($server->ip);
+
+            if ($coords) {
+                $settings = $server->getSettings();
+                $settings['lat'] = $coords['lat'];
+                $settings['lon'] = $coords['lon'];
+                $server->setSettings($settings);
+                $server->save();
+            }
+        }
     }
 
     public function getAllServers(bool $forceRefresh = false): array
@@ -178,6 +221,8 @@ class MonitoringService
 
         // Measure pings BEFORE heavy query cycle to get clean network latency
         $this->pingService->updatePings($servers);
+
+        $this->autoFillServerCoordinates($servers);
 
         $batches = array_chunk($servers, self::BATCH_SIZE);
 

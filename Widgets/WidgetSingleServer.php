@@ -42,6 +42,7 @@ class WidgetSingleServer extends AbstractWidget
             'serverData' => $serverData,
             'displayMode' => $settings['display_mode'] ?? 'standard',
             'hideModal' => filter_var($settings['hide_modal'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'showPing' => filter_var($settings['show_ping'] ?? true, FILTER_VALIDATE_BOOLEAN),
         ])->render();
     }
 
@@ -64,6 +65,7 @@ class WidgetSingleServer extends AbstractWidget
             'server_id' => 0,
             'display_mode' => 'standard',
             'hide_modal' => false,
+            'show_ping' => true,
         ];
     }
 
@@ -89,6 +91,7 @@ class WidgetSingleServer extends AbstractWidget
             'server_id' => (int) ( $input['server_id'] ?? 0 ),
             'display_mode' => $input['display_mode'] ?? 'standard',
             'hide_modal' => isset($input['hide_modal']),
+            'show_ping' => isset($input['show_ping']),
         ];
     }
 }
