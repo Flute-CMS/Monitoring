@@ -546,33 +546,134 @@ class MonitoringService
         db()->delete()->from('server_statuses')->where('updated_at', '<', $threshold)->run();
     }
 
+    /**
+     * Maximum allowed lock age in seconds before considering it stale.
+     * Safety net for NFS / network filesystems where flock may not auto-release.
+     */
+    private const LOCK_TTL = 600;
+
     protected function setupScheduledMonitoring(): void
     {
         scheduler()->call(function (): void {
             $lockFile = storage_path('app/monitoring_cron.lock');
+
+            // Ensure lock directory exists
+            $lockDir = dirname($lockFile);
+            if (!is_dir($lockDir)) {
+                @mkdir($lockDir, 0755, true);
+            }
+
+            // Open with 'c' mode — create if missing, don't truncate existing
             $handle = @fopen($lockFile, 'c+');
 
             if ($handle === false) {
-                logs()->warning('Monitoring cron: failed to open lock file');
+                logs()->warning('Monitoring cron: cannot open lock file');
 
                 return;
             }
 
-            // Non-blocking lock - if another instance is running, skip this execution
+            // Primary mechanism: kernel-level flock.
+            // Auto-released by OS if process dies/crashes — no stale locks on local FS.
             if (!@flock($handle, LOCK_EX | LOCK_NB)) {
-                @fclose($handle);
-                logs()->debug('Monitoring cron: skipped, previous execution still running');
+                // flock failed — another process holds it. Check TTL as safety net
+                // (covers NFS / network FS where flock may not auto-release).
+                $holder = $this->readLockData($handle);
+                $age = $holder ? time() - ($holder['acquired_at'] ?? 0) : 0;
 
-                return;
+                if ($holder && $age > self::LOCK_TTL && !$this->isProcessAlive($holder['pid'] ?? 0)) {
+                    // Stale lock on broken FS: close, remove, reopen and re-acquire
+                    logs()->warning("Monitoring cron: forcing stale lock (PID {$holder['pid']}, age {$age}s)");
+                    @fclose($handle);
+                    @unlink($lockFile);
+
+                    $handle = @fopen($lockFile, 'c+');
+
+                    if ($handle === false || !@flock($handle, LOCK_EX | LOCK_NB)) {
+                        if (is_resource($handle)) {
+                            @fclose($handle);
+                        }
+
+                        logs()->debug('Monitoring cron: skipped after stale lock cleanup');
+
+                        return;
+                    }
+                } else {
+                    @fclose($handle);
+                    logs()->debug('Monitoring cron: skipped, previous execution still running');
+
+                    return;
+                }
             }
+
+            // Lock acquired. Write diagnostics (PID + timestamp) for monitoring and TTL fallback.
+            // The handle MUST stay open for the entire duration — closing releases flock.
+            ftruncate($handle, 0);
+            rewind($handle);
+            fwrite($handle, json_encode([
+                'pid' => getmypid(),
+                'acquired_at' => time(),
+            ]));
+            fflush($handle);
 
             try {
                 $this->updateAllServersStatus();
             } finally {
                 @flock($handle, LOCK_UN);
                 @fclose($handle);
+                @unlink($lockFile);
             }
         })->everyMinute();
+    }
+
+    private function readLockData($handle): ?array
+    {
+        rewind($handle);
+        $content = stream_get_contents($handle);
+
+        if ($content === false || $content === '') {
+            return null;
+        }
+
+        $data = @json_decode($content, true);
+
+        return is_array($data) ? $data : null;
+    }
+
+    private function isProcessAlive(int $pid): bool
+    {
+        if ($pid <= 0) {
+            return false;
+        }
+
+        // Best: POSIX signal 0 — works on any Unix, no side effects
+        if (function_exists('posix_kill')) {
+            if (@posix_kill($pid, 0)) {
+                return true;
+            }
+
+            // EPERM (1) = process exists but owned by another user
+            // ESRCH (3) = no such process
+            return function_exists('posix_get_last_error') && posix_get_last_error() === 1;
+        }
+
+        // Linux: procfs
+        if (is_dir('/proc/' . $pid)) {
+            return true;
+        }
+
+        // Unix without posix extension: shell fallback
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $escaped = escapeshellarg((string) $pid);
+            exec("kill -0 {$escaped} 2>/dev/null", $output, $retval);
+
+            return $retval === 0;
+        }
+
+        // Windows
+        $escaped = escapeshellarg((string) $pid);
+        $out = @shell_exec("tasklist /FI \"PID eq {$escaped}\" /NH 2>NUL");
+
+        return $out !== null && str_contains($out, (string) $pid);
     }
 
     protected function setupCacheBasedMonitoring(): void
