@@ -584,6 +584,8 @@ class MonitoringService
         try {
             transaction($status)->run();
         } catch (ConstrainException $e) {
+            $this->fixAutoIncrement();
+
             $existing = $this->findServerStatusInHourWindow($status->server->id, $hourStart, $hourEnd)
                 ?? ServerStatus::query()
                     ->where('server_id', $status->server->id)
@@ -591,12 +593,27 @@ class MonitoringService
                     ->limit(1)
                     ->fetchOne();
 
-            if ($existing === null) {
-                throw $e;
+            if ($existing !== null) {
+                $this->copyServerStatusSnapshot($status, $existing);
+                transaction($existing)->run();
+
+                return;
             }
 
-            $this->copyServerStatusSnapshot($status, $existing);
-            transaction($existing)->run();
+            transaction($status)->run();
+        }
+    }
+
+    private function fixAutoIncrement(): void
+    {
+        try {
+            $db = app(\Flute\Core\Database\DatabaseConnection::class)->getDbal()->database();
+            $prefix = $db->getPrefix();
+            $table = $prefix . 'server_statuses';
+
+            $maxId = (int) $db->query("SELECT COALESCE(MAX(id), 0) FROM {$table}")->fetchColumn();
+            $db->execute("ALTER TABLE {$table} AUTO_INCREMENT = " . ($maxId + 10));
+        } catch (Throwable) {
         }
     }
 

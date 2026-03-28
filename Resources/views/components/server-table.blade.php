@@ -1,6 +1,6 @@
 @php
     $trans = 'monitoring.server';
-    $showPing = $showPing ?? true;
+    $showPing = ($showPing ?? true) && isset($userGeo);
 @endphp
 
 <div class="monitoring-table-rows">
@@ -65,7 +65,7 @@
                         </h6>
                         <span class="server-row-ip copyable"
                             data-tooltip="{{ __($trans . '.actions.copy_ip') }}"
-                            data-copy="{{ $server->ip }}:{{ $server->port }}"
+                            data-copy="{{ $server->getConnectionString() }}"
                             onclick="event.stopPropagation(); notyf.success('{{ __($trans . '.actions.copy_ip_success') }}')">
                             {{ $server->getConnectionString() }}
                             · {{ $players }}/{{ $maxPlayers }}
@@ -81,11 +81,11 @@
                     @endif
                 </div>
 
-                @if ($showPing)
+                @if ($showPing && $server->getSetting('lat') && $server->getSetting('lon'))
                     <div class="server-row-ping">
                         @if ($showActions)
                             <span class="server-ping-badge" data-server-ping="{{ $server->id }}"
-                                @if ($server->getSetting('lat') && $server->getSetting('lon')) data-server-lat="{{ $server->getSetting('lat') }}" data-server-lon="{{ $server->getSetting('lon') }}" @endif
+                                data-server-lat="{{ $server->getSetting('lat') }}" data-server-lon="{{ $server->getSetting('lon') }}"
                                 data-tooltip="{{ __($trans . '.ping_measuring') }}">
                                 <x-icon path="ph.bold.wifi-high-bold" />
                                 <span class="server-ping-value">...</span>
@@ -99,7 +99,7 @@
 
             @if ($showActions)
                 <button class="server-play-btn"
-                    onclick="event.stopPropagation(); navigator.clipboard?.writeText('connect {{ $server->ip }}:{{ $server->port }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'"
+                    onclick="event.stopPropagation(); navigator.clipboard?.writeText('connect {{ $server->getConnectionString() }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'"
                     data-tooltip="{{ __($trans . '.actions.play') }}">
                     <x-icon path="ph.regular.play" />
                 </button>
