@@ -184,8 +184,8 @@ return [
 
         'faceit_enabled' => 'Ativar FACEIT',
         'faceit_enabled_help' => 'Exibir estatísticas FACEIT para jogadores de CS2',
-        'faceit_api_key' => 'Chave da API FACEIT',
-        'faceit_api_key_help' => 'Chave de API para acessar a API do FACEIT',
+        'faceit_api_key' => 'API Key FACEIT',
+        'faceit_api_key_help' => 'API Key para acessar a API do FACEIT',
 
         'no_servers_configured' => 'Nenhum servidor configurado.',
         'add_server' => 'Adicionar servidor',
