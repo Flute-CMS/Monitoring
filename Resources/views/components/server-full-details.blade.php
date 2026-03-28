@@ -8,10 +8,12 @@
     $service = $app->get('monitoring.service');
     $hasError = isset($status->online) && !$status->online;
     $trans = 'monitoring.server';
+    $serverLat = $server ? $server->getSetting('lat') : null;
+    $serverLon = $server ? $server->getSetting('lon') : null;
     $showPing = filter_var(
         $showPing ?? \Flute\Modules\Monitoring\Services\MonitoringService::isPingEnabled(),
         FILTER_VALIDATE_BOOLEAN,
-    );
+    ) && $serverLat && $serverLon;
     $serverStats = $service->getServerStats($server);
     $mapPreview = $service->getMapPreview($status);
 
@@ -69,7 +71,7 @@
             </div>
 
             <div class="server-modal-ip">
-                <span class="copyable" data-copy="{{ $server->ip }}:{{ $server->port }}"
+                <span class="copyable" data-copy="{{ $server->getConnectionString() }}"
                     data-tooltip="{{ __($trans . '.actions.copy_ip') }}"
                     onclick="notyf.success('{{ __($trans . '.actions.copy_ip_success') }}')">
                     {{ $server->getConnectionString() }}
@@ -79,7 +81,7 @@
 
             @if ($server->enabled && !$hasError)
                 <x-button type="primary" class="server-modal-play-btn w-100"
-                    onclick="navigator.clipboard?.writeText('connect {{ $server->ip }}:{{ $server->port }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'">
+                    onclick="navigator.clipboard?.writeText('connect {{ $server->getConnectionString() }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'">
                     <x-icon path="ph.bold.play-fill" />
                     {{ __($trans . '.actions.play') }}
                 </x-button>
@@ -205,7 +207,7 @@
     </x-button>
     @if ($server->enabled && !$hasError)
         <x-button type="success" class="w-100"
-            onclick="navigator.clipboard?.writeText('connect {{ $server->ip }}:{{ $server->port }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'">
+            onclick="navigator.clipboard?.writeText('connect {{ $server->getConnectionString() }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'">
             {{ __($trans . '.actions.play') }}
         </x-button>
     @endif

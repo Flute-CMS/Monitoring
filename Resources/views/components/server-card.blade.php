@@ -2,12 +2,12 @@
     $service = $app->get('monitoring.service');
     $trans = 'monitoring.server';
     $displayMode = $displayMode ?? 'standard';
-    $showPing = $showPing ?? true;
     $hasError = isset($status->online) && !$status->online;
     $isInactive = isset($isInactive) ? $isInactive : false;
     $isCsgoLegacy = \Flute\Modules\Monitoring\Services\MonitoringService::isCsgoLegacy($status);
     $serverLat = $server->getSetting('lat');
     $serverLon = $server->getSetting('lon');
+    $showPing = ($showPing ?? true) && $serverLat && $serverLon && isset($userGeo);
 
     $players = $status->players ?? 0;
     $maxPlayers = $status->max_players ?? 0;

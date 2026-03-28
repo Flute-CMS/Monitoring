@@ -104,7 +104,14 @@
         if (!els.length) return;
 
         var user = getUserGeo();
-        if (!user) return;
+
+        if (!user) {
+            els.forEach(function (el) {
+                el.style.display = 'none';
+                el.dataset.pingLoaded = '1';
+            });
+            return;
+        }
 
         var idx = 0;
 
@@ -112,7 +119,11 @@
             var serverLat = parseFloat(el.dataset.serverLat);
             var serverLon = parseFloat(el.dataset.serverLon);
 
-            if (isNaN(serverLat) || isNaN(serverLon)) return;
+            if (isNaN(serverLat) || isNaN(serverLon)) {
+                el.style.display = 'none';
+                el.dataset.pingLoaded = '1';
+                return;
+            }
 
             var ping = calculateGeoPing(serverLat, serverLon, user.lat, user.lon);
 

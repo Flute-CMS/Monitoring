@@ -10,7 +10,7 @@
                     <div class="monitoring-admin-servers__indicator {{ $isOnline ? 'online' : 'offline' }}"></div>
                     <div class="monitoring-admin-servers__details">
                         <span class="monitoring-admin-servers__name">{{ $server->name }}</span>
-                        <span class="monitoring-admin-servers__ip">{{ $server->ip }}:{{ $server->port }}</span>
+                        <span class="monitoring-admin-servers__ip">{{ $server->getConnectionString() }}</span>
                     </div>
                 </div>
                 <div class="monitoring-admin-servers__stats">
