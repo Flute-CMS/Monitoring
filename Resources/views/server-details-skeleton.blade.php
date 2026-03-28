@@ -1,3 +1,9 @@
+@php
+    $showPing = filter_var(
+        $showPing ?? \Flute\Modules\Monitoring\Services\MonitoringService::isPingEnabled(),
+        FILTER_VALIDATE_BOOLEAN,
+    );
+@endphp
 <div class="server-details-skeleton">
     <div class="skeleton-left">
         <div class="skeleton skeleton-bg"></div>
@@ -6,7 +12,9 @@
             <div class="skeleton skeleton-subtitle"></div>
             <div class="skeleton-pills">
                 <div class="skeleton skeleton-pill"></div>
-                <div class="skeleton skeleton-pill skeleton-pill--sm"></div>
+                @if ($showPing)
+                    <div class="skeleton skeleton-pill skeleton-pill--sm"></div>
+                @endif
                 <div class="skeleton skeleton-pill"></div>
             </div>
             <div class="skeleton skeleton-ip"></div>

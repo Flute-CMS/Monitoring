@@ -134,6 +134,13 @@ class MonitoringSettingsScreen extends Screen
                         )))
                             ->label(__('monitoring.admin.show_player_details'))
                             ->popover(__('monitoring.admin.show_player_details_help')),
+
+                        LayoutFactory::field(Toggle::make('show_ping')->checked(filter_var(
+                            request()->input('show_ping', config('monitoring.show_ping', true)),
+                            FILTER_VALIDATE_BOOLEAN,
+                        )))
+                            ->label(__('monitoring.admin.show_ping'))
+                            ->popover(__('monitoring.admin.show_ping_help')),
                     ])->title(__('monitoring.admin.section_display')),
                 ]),
 
@@ -209,6 +216,7 @@ class MonitoringSettingsScreen extends Screen
             'show_navbar_online' => filter_var($data['show_navbar_online'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'show_offline_servers' => filter_var($data['show_offline_servers'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'show_player_details' => filter_var($data['show_player_details'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            'show_ping' => filter_var($data['show_ping'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'default_display_mode' => in_array($data['default_display_mode'] ?? 'standard', [
                 'standard',
                 'compact',

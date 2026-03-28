@@ -1,0 +1,238 @@
+.server-ping-value {
+    font-family: var(--font-mono);
+    font-size: var(--small);
+    font-weight: 600;
+    transition: color 0.2s;
+    @include monitoring-ping-tier-text;
+
+    &.offline {
+        color: rgba(255, 255, 255, 0.3);
+    }
+}
+
+.server-details-empty {
+    color: var(--text-400);
+    text-align: center;
+    padding: 2em;
+    font-size: var(--small);
+}
+
+.server-details-skeleton {
+    width: 100%;
+    display: flex;
+    height: $monitoring-modal-split-height;
+    max-height: $monitoring-modal-max-height;
+
+    @include media(pc) {
+        min-width: $monitoring-modal-min-width;
+    }
+
+    @include media(mobile) {
+        flex-direction: column;
+        height: auto;
+        max-height: none;
+    }
+
+    .skeleton-left {
+        width: $monitoring-modal-map-width;
+        flex-shrink: 0;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+
+        @include media(mobile) {
+            width: 100%;
+            min-height: 260px;
+        }
+
+        .skeleton-bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background: $monitoring-skeleton-dark;
+            border-radius: 0;
+        }
+    }
+
+    .skeleton-left-content {
+        position: relative;
+        z-index: 1;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        .skeleton-title-lg {
+            height: 22px;
+            width: 70%;
+            background: $monitoring-skeleton-light;
+            border-radius: var(--border05);
+        }
+
+        .skeleton-subtitle {
+            height: 12px;
+            width: 40%;
+            background: $monitoring-skeleton-mid;
+            border-radius: var(--border05);
+        }
+
+        .skeleton-pills {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .skeleton-pill {
+            height: 26px;
+            width: 80px;
+            background: $monitoring-skeleton-mid;
+            border-radius: 100px;
+
+            &--sm {
+                width: 56px;
+            }
+        }
+
+        .skeleton-ip {
+            height: 28px;
+            width: 65%;
+            background: $monitoring-skeleton-mid;
+            border-radius: 100px;
+            margin-top: 4px;
+        }
+
+        .skeleton-btn {
+            height: 38px;
+            width: 100%;
+            background: $monitoring-skeleton-light;
+            border-radius: var(--border05);
+            margin-top: 6px;
+        }
+    }
+
+    .skeleton-right {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: rgba(0, 0, 0, 0.15);
+    }
+
+    .skeleton-right-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--transp-05);
+
+        .skeleton-title {
+            height: 18px;
+            width: 120px;
+            background: $monitoring-skeleton-light;
+            border-radius: var(--border05);
+        }
+
+        .skeleton-search {
+            height: 32px;
+            width: 140px;
+            background: $monitoring-skeleton-mid;
+            border-radius: var(--border05);
+        }
+    }
+
+    .skeleton-right-rows {
+        flex: 1;
+        padding: 4px 0;
+    }
+
+    .skeleton-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+
+        .skeleton-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: $monitoring-skeleton-mid;
+            flex-shrink: 0;
+        }
+
+        .skeleton-name {
+            height: 14px;
+            width: 120px;
+            background: $monitoring-skeleton-light;
+            border-radius: var(--border05);
+        }
+
+        .skeleton-stat {
+            height: 12px;
+            width: 36px;
+            background: $monitoring-skeleton-mid;
+            border-radius: var(--border05);
+            margin-left: auto;
+
+            &--sm {
+                width: 28px;
+                background: $monitoring-skeleton-dark;
+                margin-left: 0;
+            }
+        }
+    }
+}
+
+.server-details-modal {
+    .modal__container {
+        @include media(pc) {
+            min-width: $monitoring-modal-min-width;
+            max-width: 900px;
+        }
+
+        @include media(mobile) {
+            max-width: 100%;
+            margin: 0;
+            border-radius: 16px 16px 0 0;
+            max-height: 90vh;
+        }
+    }
+
+    .modal__content {
+        padding: 0;
+
+        @include media(mobile) {
+            overflow: hidden;
+        }
+    }
+
+    .modal__header {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 10;
+        padding: var(--space-md);
+
+        .modal__title {
+            display: none;
+        }
+    }
+
+    .modal__close {
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 50%;
+        color: rgba(255, 255, 255, 0.6);
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+        }
+    }
+
+    .modal__footer-server-details,
+    .modal__header {
+        display: none;
+    }
+}

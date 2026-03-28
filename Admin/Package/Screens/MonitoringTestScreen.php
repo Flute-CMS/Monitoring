@@ -123,6 +123,7 @@ class MonitoringTestScreen extends Screen
             $layouts[] = LayoutFactory::block([
                 LayoutFactory::view('monitoring::admin.test-result', [
                     'result' => $this->testResult,
+                    'showPing' => MonitoringService::isPingEnabled(),
                 ]),
             ])->title(__('monitoring.admin.test_result'));
         }

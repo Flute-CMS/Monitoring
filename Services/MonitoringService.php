@@ -2,6 +2,7 @@
 
 namespace Flute\Modules\Monitoring\Services;
 
+use Cycle\Database\Exception\StatementException\ConstrainException;
 use Cycle\Database\Injection\Parameter;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -42,6 +43,14 @@ class MonitoringService
     public const GAME_RUST = 'rust';
 
     public const BATCH_SIZE = 10;
+
+    /**
+     * Global monitoring setting: measure and show latency / ping UI (admin → Monitoring).
+     */
+    public static function isPingEnabled(): bool
+    {
+        return filter_var(config('monitoring.show_ping', true), FILTER_VALIDATE_BOOLEAN);
+    }
 
     private ServerQueryService $queryService;
 
@@ -219,8 +228,12 @@ class MonitoringService
     {
         $servers = $this->cacheService->getEnabledServers();
 
-        // Measure pings BEFORE heavy query cycle to get clean network latency
-        $this->pingService->updatePings($servers);
+        if (self::isPingEnabled()) {
+            // Measure pings BEFORE heavy query cycle to get clean network latency
+            $this->pingService->updatePings($servers);
+        } else {
+            cache()->delete('monitoring_pings');
+        }
 
         $this->autoFillServerCoordinates($servers);
 
@@ -559,27 +572,57 @@ class MonitoringService
         $hourStart = $now->setTime((int) $now->format('H'), 0, 0);
         $hourEnd = $hourStart->modify('+1 hour');
 
-        $existing = ServerStatus::query()
-            ->where('server_id', $status->server->id)
+        $existing = $this->findServerStatusInHourWindow($status->server->id, $hourStart, $hourEnd);
+
+        if ($existing) {
+            $this->copyServerStatusSnapshot($status, $existing);
+            transaction($existing)->run();
+
+            return;
+        }
+
+        try {
+            transaction($status)->run();
+        } catch (ConstrainException $e) {
+            $existing = $this->findServerStatusInHourWindow($status->server->id, $hourStart, $hourEnd)
+                ?? ServerStatus::query()
+                    ->where('server_id', $status->server->id)
+                    ->orderBy('updated_at', 'DESC')
+                    ->limit(1)
+                    ->fetchOne();
+
+            if ($existing === null) {
+                throw $e;
+            }
+
+            $this->copyServerStatusSnapshot($status, $existing);
+            transaction($existing)->run();
+        }
+    }
+
+    private function findServerStatusInHourWindow(int $serverId, DateTimeImmutable $hourStart, DateTimeImmutable $hourEnd): ?ServerStatus
+    {
+        $row = ServerStatus::query()
+            ->where('server_id', $serverId)
             ->where('updated_at', '>=', $hourStart)
             ->where('updated_at', '<', $hourEnd)
             ->orderBy('updated_at', 'DESC')
             ->limit(1)
             ->fetchOne();
 
-        if ($existing) {
-            $existing->online = $status->online;
-            $existing->players = $status->players;
-            $existing->max_players = $status->max_players;
-            $existing->map = $status->map;
-            $existing->game = $status->game;
-            $existing->players_data = $status->players_data;
-            $existing->additional = $status->additional;
-            $existing->touch();
-            transaction($existing)->run();
-        } else {
-            transaction($status)->run();
-        }
+        return $row instanceof ServerStatus ? $row : null;
+    }
+
+    private function copyServerStatusSnapshot(ServerStatus $from, ServerStatus $onto): void
+    {
+        $onto->online = $from->online;
+        $onto->players = $from->players;
+        $onto->max_players = $from->max_players;
+        $onto->map = $from->map;
+        $onto->game = $from->game;
+        $onto->players_data = $from->players_data;
+        $onto->additional = $from->additional;
+        $onto->touch();
     }
 
     protected function pruneOldStatuses(): void
@@ -786,7 +829,8 @@ class MonitoringService
         }
 
         $additional = $status->getAdditional();
-        $description = $additional['description'] ?? '';
+        $raw = $additional['description'] ?? '';
+        $description = is_string($raw) ? $raw : '';
 
         // Primary check: description from A2S_INFO contains "Global Offensive"
         return stripos($description, 'Global Offensive') !== false;

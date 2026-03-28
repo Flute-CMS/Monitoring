@@ -57,7 +57,8 @@ class WidgetMonitoring extends AbstractWidget
             'displayMode' => $settings['display_mode'] ?? 'standard',
             'showCountPlayers' => filter_var($settings['show_count_players'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'showPlaceholders' => filter_var($settings['show_placeholders'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'showPing' => filter_var($settings['show_ping'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            'showPing' => MonitoringService::isPingEnabled()
+                && filter_var($settings['show_ping'] ?? true, FILTER_VALIDATE_BOOLEAN),
         ])->render();
     }
 

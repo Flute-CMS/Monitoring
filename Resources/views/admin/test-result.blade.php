@@ -17,6 +17,10 @@
     $isCsGo = ($data['game'] ?? '') === '730' && !empty($additionalData);
     $hasPlayers = !empty($playersData) && is_array($playersData);
     $hasRconPlayers = $isCsGo && !empty($additionalData['players']);
+    $showPing = filter_var(
+        $showPing ?? \Flute\Modules\Monitoring\Services\MonitoringService::isPingEnabled(),
+        FILTER_VALIDATE_BOOLEAN,
+    );
 @endphp
 
 <div class="mtest">
@@ -140,9 +144,11 @@
                                         <x-icon path="ph.regular.crosshair" /> {{ $player['headshots'] }}
                                     </span>
                                 @endif
-                                <span class="mtest__player-ping mtest__player-ping--{{ $pingClass }}" title="{{ $ping }} ms">
-                                    {{ $ping }}ms
-                                </span>
+                                @if ($showPing)
+                                    <span class="mtest__player-ping mtest__player-ping--{{ $pingClass }}" title="{{ $ping }} ms">
+                                        {{ $ping }}ms
+                                    </span>
+                                @endif
                             </div>
                         </div>
                     @endforeach

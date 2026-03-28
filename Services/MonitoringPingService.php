@@ -59,6 +59,10 @@ class MonitoringPingService
      */
     public function updatePings(array $servers): void
     {
+        if (!MonitoringService::isPingEnabled()) {
+            return;
+        }
+
         $pings = [];
 
         foreach ($servers as $server) {

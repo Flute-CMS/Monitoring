@@ -32,15 +32,31 @@ class MonitoringController extends BaseController
             $status->server = $server;
         }
 
-        return view('monitoring::server-details', [
+        $globalPing = MonitoringService::isPingEnabled();
+        $queryPing = $request->query->get('show_ping');
+        if ($queryPing === null || $queryPing === '') {
+            $showPing = $globalPing;
+        } else {
+            $showPing = $globalPing && filter_var($queryPing, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return view('monitoring::pages.server-details', [
             'server' => $server,
             'status' => $status,
+            'showPing' => $showPing,
         ]);
     }
 
     #[Route(name: 'monitoring.server.ping', uri: 'api/monitoring/ping/{id}', methods: ['GET'])]
     public function pingServer(Request $request, int $id)
     {
+        if (!MonitoringService::isPingEnabled()) {
+            return $this->json([
+                'server_ping' => null,
+                'ping_disabled' => true,
+            ]);
+        }
+
         $pingService = app(MonitoringPingService::class);
 
         return $this->json([
@@ -55,6 +71,10 @@ class MonitoringController extends BaseController
     #[Route(name: 'monitoring.server.pings', uri: 'api/monitoring/pings', methods: ['GET'])]
     public function allPings(Request $request)
     {
+        if (!MonitoringService::isPingEnabled()) {
+            return $this->json([]);
+        }
+
         $pingService = app(MonitoringPingService::class);
         $pings = $pingService->getAllPings();
 

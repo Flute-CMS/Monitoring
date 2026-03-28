@@ -109,11 +109,8 @@
 </div>
 
 @foreach ($servers as $serverData)
-    @php $server = $serverData['server']; @endphp
-    <x-modal id="server-details-{{ $server->id }}" title="{{ $server->name }}" class="server-details-modal"
-        loadUrl="{{ url('api/monitoring/server/' . $server->id) }}">
-        <x-slot name="skeleton">
-            @include('monitoring::server-details-skeleton')
-        </x-slot>
-    </x-modal>
+    @include('monitoring::components.server-details-modal', [
+        'server' => $serverData['server'],
+        'showPing' => $showPing,
+    ])
 @endforeach

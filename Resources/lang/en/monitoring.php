@@ -137,6 +137,8 @@ return [
     ],
     'navbar' => [
         'logo' => 'Players Online',
+        'servers' => 'Servers',
+        'online' => 'Players Online',
     ],
     'admin' => [
         'title' => 'Monitoring',
@@ -172,6 +174,8 @@ return [
         'show_offline_servers_help' => 'Display disabled servers in monitoring',
         'show_player_details' => 'Show player details',
         'show_player_details_help' => 'Display detailed information about players on the server',
+        'show_ping' => 'Show ping',
+        'show_ping_help' => 'When disabled, latency is not measured on cron runs, ping API returns empty, and ping is hidden in widgets and server details (including player ping in CS2 lists).',
 
         'default_display_mode' => 'Default display mode',
         'default_display_mode_help' => 'Default monitoring widget display mode',

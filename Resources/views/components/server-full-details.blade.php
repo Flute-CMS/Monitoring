@@ -8,6 +8,10 @@
     $service = $app->get('monitoring.service');
     $hasError = isset($status->online) && !$status->online;
     $trans = 'monitoring.server';
+    $showPing = filter_var(
+        $showPing ?? \Flute\Modules\Monitoring\Services\MonitoringService::isPingEnabled(),
+        FILTER_VALIDATE_BOOLEAN,
+    );
     $serverStats = $service->getServerStats($server);
     $mapPreview = $service->getMapPreview($status);
 
@@ -45,12 +49,14 @@
                         </svg>
                         {{ $players }} / {{ $maxPlayers }}
                     </span>
-                    <span class="server-modal-pill server-modal-pill--ping" data-server-ping="{{ $server->id }}"
-                        data-ping-ip="{{ $server->ip }}" data-ping-port="{{ $server->port }}"
-                        data-tooltip="{{ __($trans . '.ping_measuring') }}">
-                        <x-icon path="ph.bold.wifi-high-bold" />
-                        <span class="server-ping-value">...</span>
-                    </span>
+                    @if ($showPing)
+                        <span class="server-modal-pill server-modal-pill--ping" data-server-ping="{{ $server->id }}"
+                            data-ping-ip="{{ $server->ip }}" data-ping-port="{{ $server->port }}"
+                            data-tooltip="{{ __($trans . '.ping_measuring') }}">
+                            <x-icon path="ph.bold.wifi-high-bold" />
+                            <span class="server-ping-value">...</span>
+                        </span>
+                    @endif
                     <span class="server-modal-pill server-modal-pill--online">
                         <span class="server-modal-online-dot"></span>
                         {{ __($trans . '.online') }}
@@ -114,9 +120,11 @@
                             <th class="text-center" data-tooltip="{{ __($trans . '.csgo.playtime') }}">
                                 <x-icon path="ph.regular.hourglass" />
                             </th>
-                            <th class="text-center" data-tooltip="{{ __($trans . '.csgo.ping') }}">
-                                <x-icon path="ph.bold.wifi-high-bold" />
-                            </th>
+                            @if ($showPing)
+                                <th class="text-center" data-tooltip="{{ __($trans . '.csgo.ping') }}">
+                                    <x-icon path="ph.bold.wifi-high-bold" />
+                                </th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody id="playerTableBody-{{ $serverId }}">
@@ -160,12 +168,14 @@
                                 <td class="text-center">
                                     {{ \Carbon\CarbonInterval::seconds($player['playtime'])->cascade()->forHumans(null, true) }}
                                 </td>
-                                <td class="text-center player-ping">
-                                    <span class="ping-value {{ $pingClass }}"
-                                        data-tooltip="{{ __($trans . '.csgo.ping') }} {{ $pingVal }} ms">
-                                        {{ $pingVal }}
-                                    </span>
-                                </td>
+                                @if ($showPing)
+                                    <td class="text-center player-ping">
+                                        <span class="ping-value {{ $pingClass }}"
+                                            data-tooltip="{{ __($trans . '.csgo.ping') }} {{ $pingVal }} ms">
+                                            {{ $pingVal }}
+                                        </span>
+                                    </td>
+                                @endif
                             </tr>
                         @endforeach
                     </tbody>

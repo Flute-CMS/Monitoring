@@ -42,7 +42,8 @@ class WidgetSingleServer extends AbstractWidget
             'serverData' => $serverData,
             'displayMode' => $settings['display_mode'] ?? 'standard',
             'hideModal' => filter_var($settings['hide_modal'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'showPing' => filter_var($settings['show_ping'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            'showPing' => MonitoringService::isPingEnabled()
+                && filter_var($settings['show_ping'] ?? true, FILTER_VALIDATE_BOOLEAN),
         ])->render();
     }
 

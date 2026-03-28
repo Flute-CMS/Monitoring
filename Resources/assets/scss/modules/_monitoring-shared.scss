@@ -1,0 +1,96 @@
+$monitoring-online: #30d158;
+$monitoring-offline: #ff453a;
+$monitoring-warn: #ff9f0a;
+
+$monitoring-online-glow: rgba(48, 209, 88, 0.4);
+$monitoring-online-aura: rgba(48, 209, 88, 0.5);
+$monitoring-online-pulse-mid: rgba(48, 209, 88, 0.15);
+
+$monitoring-ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+$monitoring-ease-material: cubic-bezier(0.4, 0, 0.2, 1);
+
+$monitoring-modal-min-width: 820px;
+$monitoring-modal-map-width: 360px;
+$monitoring-modal-split-height: 540px;
+$monitoring-modal-max-height: 70vh;
+
+$monitoring-skeleton-dark: var(--background-900);
+$monitoring-skeleton-mid: var(--transp-05);
+$monitoring-skeleton-light: var(--transp-1);
+
+@mixin monitoring-ping-tier-text {
+    &.good {
+        color: $monitoring-online;
+    }
+
+    &.medium {
+        color: $monitoring-warn;
+    }
+
+    &.bad {
+        color: $monitoring-offline;
+    }
+}
+
+@mixin monitoring-glass-blur-pill {
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+@mixin monitoring-glass-pill-surface($text-color, $with-font-mono: false) {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--small);
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: $text-color;
+    white-space: nowrap;
+    @include monitoring-glass-blur-pill;
+
+    @if $with-font-mono {
+        font-family: var(--font-mono);
+    }
+}
+
+@mixin monitoring-status-pill-online {
+    color: $monitoring-online;
+    background: rgba(48, 209, 88, 0.12);
+    border-color: rgba(48, 209, 88, 0.2);
+}
+
+@mixin monitoring-status-pill-offline {
+    color: $monitoring-offline;
+    background: rgba(255, 69, 58, 0.12);
+    border-color: rgba(255, 69, 58, 0.2);
+}
+
+@mixin monitoring-status-pill-warn {
+    color: $monitoring-warn;
+    background: rgba(255, 159, 10, 0.12);
+    border-color: rgba(255, 159, 10, 0.2);
+}
+
+@mixin monitoring-team-row-ct {
+    background: linear-gradient(to right, rgba(33, 149, 243, 0.06), transparent 50%);
+}
+
+@mixin monitoring-team-row-t {
+    background: linear-gradient(to right, rgba(255, 193, 7, 0.06), transparent 50%);
+}
+
+@mixin monitoring-overlay-gradient-card {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.75) 20%, rgba(0, 0, 0, 0.4) 55%, transparent 100%);
+}
+
+@mixin monitoring-overlay-gradient-row {
+    background: linear-gradient(
+        to right,
+        rgba(0, 0, 0, 0.7) 0%,
+        rgba(0, 0, 0, 0.35) 55%,
+        rgba(0, 0, 0, 0.08) 100%
+    );
+}

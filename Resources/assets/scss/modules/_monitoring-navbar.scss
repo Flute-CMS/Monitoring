@@ -1,0 +1,577 @@
+.monitoring-pill {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    border-radius: 10px;
+    font-size: var(--p-small);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--text);
+    cursor: default;
+    border: 1px solid var(--transp-1);
+    background: color-mix(in srgb, var(--blurred-background) 82%, transparent);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease;
+
+    &:hover {
+        background: color-mix(in srgb, var(--blurred-background) 96%, transparent);
+        border-color: var(--transp-2);
+    }
+
+    // ─── Section (players / servers) ───────────────────────────────
+
+    &__section {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+    }
+
+    &__section-icon {
+        width: 14px;
+        height: 14px;
+        color: var(--text-500);
+        flex-shrink: 0;
+        opacity: 0.7;
+    }
+
+    &__dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: var(--text-600);
+        transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    &__count {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        font-size: var(--p-small);
+        color: var(--text);
+        transition: color 0.2s ease;
+    }
+
+    &__sep {
+        width: 1px;
+        align-self: stretch;
+        margin: 6px 0;
+        flex-shrink: 0;
+        background: var(--transp-2);
+    }
+
+    &__servers {
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+        font-size: var(--p-small);
+        font-weight: 600;
+    }
+
+    &__servers-dim {
+        font-weight: 400;
+        color: var(--text-600);
+    }
+
+    // ─── Online state (base) ────────────────────────────────────────
+
+    &--online {
+        .monitoring-pill__dot {
+            background: #34c759;
+            box-shadow: 0 0 0 2.5px color-mix(in srgb, #34c759 18%, transparent);
+        }
+    }
+
+    // ─── Fill levels (Apple system colors) ─────────────────────────
+    // cool: 0–39% (green)
+    // warm: 40–74% (amber)
+    // hot:  75–100% (red)
+
+    &--cool {
+        .monitoring-pill__count {
+            color: #34c759;
+        }
+
+        .monitoring-pill__section:first-child .monitoring-pill__section-icon {
+            color: #34c759;
+            opacity: 1;
+        }
+    }
+
+    &--warm {
+        .monitoring-pill__dot {
+            background: #ff9f0a;
+            box-shadow: 0 0 0 2.5px color-mix(in srgb, #ff9f0a 18%, transparent);
+        }
+
+        .monitoring-pill__count {
+            color: #ff9f0a;
+        }
+
+        .monitoring-pill__section:first-child .monitoring-pill__section-icon {
+            color: #ff9f0a;
+            opacity: 1;
+        }
+    }
+
+    &--hot {
+        .monitoring-pill__dot {
+            background: #ff453a;
+            box-shadow: 0 0 0 2.5px color-mix(in srgb, #ff453a 20%, transparent);
+        }
+
+        .monitoring-pill__count {
+            color: #ff453a;
+        }
+
+        .monitoring-pill__section:first-child .monitoring-pill__section-icon {
+            color: #ff453a;
+            opacity: 1;
+        }
+    }
+
+    // ─── Empty / offline state ─────────────────────────────────────
+
+    &--empty {
+        .monitoring-pill__dot {
+            background: var(--text-700);
+            opacity: 0.4;
+        }
+
+        .monitoring-pill__count {
+            color: var(--text-600);
+        }
+
+        .monitoring-pill__servers {
+            color: var(--text-600);
+        }
+
+        .monitoring-pill__section-icon {
+            opacity: 0.4;
+        }
+    }
+}
+
+// ─── Tooltip container (Control Center style) ───────────────────────────────
+
+.tooltip:has(.mp-tip) {
+    max-width: min(340px, calc(100vw - 24px));
+    padding: 0;
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid var(--transp-1);
+    background: color-mix(in srgb, var(--blurred-background) 85%, transparent);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+// ─── Tooltip content ────────────────────────────────────────────────────────
+
+.mp-tip {
+    display: flex;
+    flex-direction: column;
+    max-height: min(72vh, 480px);
+    min-height: 0;
+    text-align: left;
+
+    // ─── Header ────────────────────────────────────────────────────
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        gap: 8px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--transp-1);
+    }
+
+    &__label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-500);
+        letter-spacing: -0.01em;
+    }
+
+    &__total {
+        display: flex;
+        align-items: baseline;
+        gap: 1px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    &__total-count {
+        font-size: var(--p);
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    &__total-sep {
+        color: var(--text-700);
+        font-weight: 400;
+        font-size: var(--small);
+    }
+
+    &__total-max {
+        font-size: var(--small);
+        font-weight: 500;
+        color: var(--text-600);
+    }
+
+
+    // ─── Server list ───────────────────────────────────────────────
+
+    &__list {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 4px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: var(--transp-2) transparent;
+
+        &::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: var(--transp-2);
+            border-radius: 100px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    }
+
+    // ─── Server card ───────────────────────────────────────────────
+
+    &__srv {
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+        font-size: var(--small);
+        line-height: 1.25;
+        flex-shrink: 0;
+        transition: background 0.15s ease;
+
+        &:hover {
+            background: color-mix(in srgb, var(--text) 4%, transparent);
+        }
+
+        &:hover .mp-tip__srv-bg img {
+            transform: scale(1.02);
+        }
+    }
+
+    &__srv-bg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.45) saturate(0.85);
+            transition: transform 0.4s ease;
+        }
+    }
+
+    &__srv-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: linear-gradient(90deg,
+                rgba(0, 0, 0, 0.7) 0%,
+                rgba(0, 0, 0, 0.3) 50%,
+                rgba(0, 0, 0, 0.05) 100%);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        mask-image: linear-gradient(90deg, black 0%, black 40%, transparent 100%);
+        -webkit-mask-image: linear-gradient(90deg, black 0%, black 40%, transparent 100%);
+    }
+
+    &__srv-inner {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 8px 10px;
+    }
+
+    // ─── Server card with map background ───────────────────────────
+
+    &__srv:has(.mp-tip__srv-bg) {
+        &:hover {
+            background: none;
+        }
+
+        .mp-tip__srv-name {
+            color: #fff;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .mp-tip__srv-map {
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        .mp-tip__srv-players {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .mp-tip__srv-players-bar {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .mp-tip__srv-players-text {
+            color: #fff;
+        }
+
+        .mp-tip__srv-players-max {
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .mp-tip__srv-btn {
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.2);
+                color: #fff;
+            }
+        }
+
+        .mp-tip__srv-btn--play:hover {
+            background: rgba(52, 199, 89, 0.35);
+            color: #fff;
+        }
+    }
+
+    // ─── Server info ───────────────────────────────────────────────
+
+    &__srv-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1px;
+    }
+
+    &__srv-name {
+        margin: 0;
+        font-weight: 600;
+        font-size: var(--small);
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        letter-spacing: -0.01em;
+    }
+
+    &__srv-map {
+        font-size: 10px;
+        color: var(--text-600);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 1.2;
+    }
+
+    // ─── Right side (players + actions) ────────────────────────────
+
+    &__srv-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    // ─── Player count with fill bar ────────────────────────────────
+
+    &__srv-players {
+        position: relative;
+        font-variant-numeric: tabular-nums;
+        flex-shrink: 0;
+        align-self: center;
+        min-width: 2.75rem;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--text) 5%, transparent);
+    }
+
+    &__srv-players-bar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: var(--fill, 0%);
+        background: var(--bar-color, color-mix(in srgb, #34c759 18%, transparent));
+        border-radius: 6px;
+        transition: width 0.4s ease, background 0.3s ease;
+    }
+
+    &__srv-players-text {
+        position: relative;
+        z-index: 1;
+        font-weight: 600;
+        font-size: 10px;
+        color: var(--text);
+        padding: 0 8px;
+        line-height: 1;
+    }
+
+    &__srv-players-max {
+        font-weight: 400;
+        color: var(--text-500);
+    }
+
+    // ─── Server fill levels ────────────────────────────────────────
+
+    &__srv--cool {
+        --bar-color: color-mix(in srgb, var(--text) 6%, transparent);
+    }
+
+    &__srv--warm {
+        --bar-color: color-mix(in srgb, #ff9f0a 22%, transparent);
+
+        .mp-tip__srv-players-text {
+            color: #ff9f0a;
+        }
+
+        .mp-tip__srv-players-max {
+            color: #ff9f0a;
+            opacity: 0.5;
+        }
+    }
+
+    &__srv--hot {
+        --bar-color: color-mix(in srgb, #ff9f0a 28%, transparent);
+
+        .mp-tip__srv-players-text {
+            color: #ff9f0a;
+        }
+
+        .mp-tip__srv-players-max {
+            color: #ff9f0a;
+            opacity: 0.5;
+        }
+    }
+
+    &__srv--full {
+        --bar-color: color-mix(in srgb, #ff453a 25%, transparent);
+
+        .mp-tip__srv-players-text {
+            color: #ff453a;
+        }
+
+        .mp-tip__srv-players-max {
+            color: #ff453a;
+            opacity: 0.5;
+        }
+    }
+
+    // Override colors for map-background cards
+    &__srv:has(.mp-tip__srv-bg) {
+        &.mp-tip__srv--warm .mp-tip__srv-players-bar {
+            background: rgba(255, 159, 10, 0.3);
+        }
+
+        &.mp-tip__srv--hot .mp-tip__srv-players-bar {
+            background: rgba(255, 159, 10, 0.35);
+        }
+
+        &.mp-tip__srv--full .mp-tip__srv-players-bar {
+            background: rgba(255, 69, 58, 0.35);
+        }
+
+        &.mp-tip__srv--warm,
+        &.mp-tip__srv--hot {
+            .mp-tip__srv-players-text {
+                color: #ffbf40;
+            }
+
+            .mp-tip__srv-players-max {
+                color: #ffbf40;
+                opacity: 0.5;
+            }
+        }
+
+        &.mp-tip__srv--full {
+            .mp-tip__srv-players-text {
+                color: #ff6961;
+            }
+
+            .mp-tip__srv-players-max {
+                color: #ff6961;
+                opacity: 0.5;
+            }
+        }
+    }
+
+    // ─── Action buttons ────────────────────────────────────────────
+
+    &__srv-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+
+    &__srv-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        color: var(--text-500);
+        cursor: pointer;
+        text-decoration: none;
+        border: none;
+        background: transparent;
+        transition:
+            background 0.15s ease,
+            color 0.15s ease;
+
+        svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        &:hover {
+            background: color-mix(in srgb, var(--text) 8%, transparent);
+            color: var(--text);
+        }
+
+        &--play:hover {
+            background: color-mix(in srgb, #34c759 15%, transparent);
+            color: #34c759;
+        }
+    }
+}

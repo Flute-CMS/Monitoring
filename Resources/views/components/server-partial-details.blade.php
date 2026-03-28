@@ -2,6 +2,10 @@
     $service = $app->get('monitoring.service');
     $hasError = isset($status->online) && !$status->online;
     $trans = 'monitoring.server';
+    $showPing = filter_var(
+        $showPing ?? \Flute\Modules\Monitoring\Services\MonitoringService::isPingEnabled(),
+        FILTER_VALIDATE_BOOLEAN,
+    );
     $serverId = $server->id;
     $mapPreview = $service->getMapPreview($status);
     $isCsgoLegacy = \Flute\Modules\Monitoring\Services\MonitoringService::isCsgoLegacy($status);
@@ -40,12 +44,14 @@
                         </svg>
                         {{ $players }} / {{ $maxPlayers }}
                     </span>
-                    <span class="server-modal-pill server-modal-pill--ping" data-server-ping="{{ $server->id }}"
-                        data-ping-ip="{{ $server->ip }}" data-ping-port="{{ $server->port }}"
-                        data-tooltip="{{ __($trans . '.ping_measuring') }}">
-                        <x-icon path="ph.bold.wifi-high-bold" />
-                        <span class="server-ping-value">...</span>
-                    </span>
+                    @if ($showPing)
+                        <span class="server-modal-pill server-modal-pill--ping" data-server-ping="{{ $server->id }}"
+                            data-ping-ip="{{ $server->ip }}" data-ping-port="{{ $server->port }}"
+                            data-tooltip="{{ __($trans . '.ping_measuring') }}">
+                            <x-icon path="ph.bold.wifi-high-bold" />
+                            <span class="server-ping-value">...</span>
+                        </span>
+                    @endif
                     <span class="server-modal-pill server-modal-pill--online">
                         <span class="server-modal-online-dot"></span>
                         {{ __($trans . '.online') }}
