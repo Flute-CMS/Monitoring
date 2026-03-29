@@ -361,6 +361,7 @@ class MonitoringService
             } catch (Exception $e) {
                 $serverId = $this->getServerIdentifier($server);
                 logs()->error("Error updating server status for {$serverId}: {$e->getMessage()}");
+
             }
         }
     }
@@ -566,8 +567,8 @@ class MonitoringService
 
     protected function saveStatus(ServerStatus $status): void
     {
-        $timezone = new DateTimeZone(config('app.timezone', 'UTC'));
-        $now = new DateTimeImmutable('now', $timezone);
+        $dbTimezone = $this->detectDatabaseTimezone();
+        $now = new DateTimeImmutable('now', $dbTimezone);
 
         $hourStart = $now->setTime((int) $now->format('H'), 0, 0);
         $hourEnd = $hourStart->modify('+1 hour');
@@ -586,12 +587,7 @@ class MonitoringService
         } catch (ConstrainException $e) {
             $this->fixAutoIncrement();
 
-            $existing = $this->findServerStatusInHourWindow($status->server->id, $hourStart, $hourEnd)
-                ?? ServerStatus::query()
-                    ->where('server_id', $status->server->id)
-                    ->orderBy('updated_at', 'DESC')
-                    ->limit(1)
-                    ->fetchOne();
+            $existing = $this->findServerStatusInHourWindow($status->server->id, $hourStart, $hourEnd);
 
             if ($existing !== null) {
                 $this->copyServerStatusSnapshot($status, $existing);
@@ -602,6 +598,37 @@ class MonitoringService
 
             transaction($status)->run();
         }
+    }
+
+    private function detectDatabaseTimezone(): DateTimeZone
+    {
+        static $tz = null;
+
+        if ($tz !== null) {
+            return $tz;
+        }
+
+        try {
+            $db = app(\Flute\Core\Database\DatabaseConnection::class)->getDbal()->database();
+            $driver = $db->getDriver();
+            $pdo = method_exists($driver, 'getPDO') ? $driver->getPDO() : null;
+
+            if ($pdo) {
+                $result = $pdo->query("SELECT TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), NOW())")->fetchColumn();
+                $offsetSeconds = (int) $result;
+                $sign = $offsetSeconds >= 0 ? '+' : '-';
+                $hours = abs(intdiv($offsetSeconds, 3600));
+                $minutes = abs(intdiv($offsetSeconds % 3600, 60));
+                $tz = new DateTimeZone(sprintf('%s%02d:%02d', $sign, $hours, $minutes));
+
+                return $tz;
+            }
+        } catch (Throwable) {
+        }
+
+        $tz = new DateTimeZone('UTC');
+
+        return $tz;
     }
 
     private function fixAutoIncrement(): void

@@ -64,17 +64,17 @@
                 @endif
             </div>
         </div>
-        @if (!$isInactive && !$hasError)
-            <a href="{{ $steamConnect }}" class="card-play-btn" onclick="event.stopPropagation()"
-                data-tooltip="{{ __($trans . '.actions.play') }}">
-                <x-icon path="ph.regular.play" />
-            </a>
-        @endif
         <div class="card-hover-actions">
             <button class="card-copy-btn copyable" data-copy="connect {{ $connect }}" onclick="event.stopPropagation()"
                 data-tooltip="{{ __($trans . '.actions.copy_ip') }}">
                 <x-icon path="ph.regular.copy" />
             </button>
+            @if (!$isInactive && !$hasError)
+                <a href="{{ $steamConnect }}" class="card-play-btn" onclick="event.stopPropagation()"
+                    data-tooltip="{{ __($trans . '.actions.play') }}">
+                    <x-icon path="ph.regular.play" />
+                </a>
+            @endif
         </div>
     </div>
 @else
