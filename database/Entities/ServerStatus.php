@@ -8,7 +8,6 @@ use Cycle\Annotated\Annotation\Entity;
 use Cycle\Annotated\Annotation\Relation\BelongsTo;
 use Cycle\Annotated\Annotation\Table\Index;
 use DateTimeImmutable;
-use DateTimeZone;
 use Flute\Core\Database\Entities\Server;
 
 #[Entity]
@@ -86,7 +85,6 @@ class ServerStatus extends ActiveRecord
      */
     public function touch(): void
     {
-        $timezone = new DateTimeZone(config('app.timezone', 'UTC'));
-        $this->updated_at = new DateTimeImmutable('now', $timezone);
+        $this->updated_at = new DateTimeImmutable('now');
     }
 }
