@@ -65,12 +65,10 @@
                 @endif
             </div>
 
-            <div class="server-modal-ip">
-                <span class="copyable" data-copy="{{ $server->getConnectionString() }}"
-                    data-tooltip="{{ __($trans . '.actions.copy_ip') }}"
-                    onclick="notyf.success('{{ __($trans . '.actions.copy_ip_success') }}')">
-                    {{ $server->getConnectionString() }}
-                </span>
+            <div class="server-modal-ip"
+                data-copy="connect {{ $server->getConnectionString() }}"
+                data-tooltip="{{ __($trans . '.actions.copy_ip') }}">
+                <span>{{ $server->getConnectionString() }}</span>
                 <x-icon path="ph.regular.copy" />
             </div>
 

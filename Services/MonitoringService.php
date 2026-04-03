@@ -187,7 +187,7 @@ class MonitoringService
             logs()->error("Error updating server status for {$serverId}: {$e->getMessage()}");
         }
 
-        if ($status->online && $status->game === self::GAME_CSGO) {
+        if ($status->online && $this->isCsgoServer($server, $status)) {
             $this->fetchAndAddSteamInfo($status);
         }
 
@@ -298,7 +298,7 @@ class MonitoringService
         $driver = $dbMod['connection'];
         $server = $dbMod['server'];
         $prefix = '';
-        $tableName = $dbMod['connection']->getAdditional()['table_name'] ?? 'base';
+        $tableName = preg_replace('/[^a-zA-Z0-9_]/', '', $dbMod['connection']->getAdditional()['table_name'] ?? 'base');
 
         if (!config('database.databases.' . $driver->dbname . '.prefix')) {
             $prefix = 'lvl_';
@@ -320,18 +320,23 @@ class MonitoringService
             return $server->getRank($playerRank['rank'] ?? 0, $playerRank['value'] ?? 0);
         }
 
+        $rankValue = !empty($playerRank['rank']) ? $playerRank['rank'] : '0';
+        $safeRank = htmlspecialchars((string) $rankValue, ENT_QUOTES, 'UTF-8');
+        $safeRanksDir = preg_replace('/[^a-zA-Z0-9_\-]/', '', $server->ranks ?? 'default');
+        $safeFormat = preg_replace('/[^a-zA-Z0-9]/', '', $server->ranks_format ?? 'webp');
+
         return (
             '<img src="'
             . asset(
                 'assets/img/ranks/'
-                . ( $server->ranks ?? 'default' )
+                . $safeRanksDir
                 . '/'
-                . ( !empty($playerRank['rank']) ? $playerRank['rank'] : '0' )
+                . $safeRank
                 . '.'
-                . ( $server->ranks_format ?? 'webp' ),
+                . $safeFormat,
             )
             . '" alt="'
-            . $playerRank['rank']
+            . $safeRank
             . '" loading="lazy">'
         );
     }
@@ -353,7 +358,7 @@ class MonitoringService
                 $queryResult = $queryResults[$server->id] ?? new QueryResult();
                 $this->applyQueryResult($queryResult, $status, $server);
 
-                if ($status->online && $status->game === self::GAME_CSGO) {
+                if ($status->online && $this->isCsgoServer($server, $status)) {
                     $this->fetchAndAddSteamInfo($status);
                 }
 
@@ -389,7 +394,7 @@ class MonitoringService
         $status->players = $queryResult->players;
         $status->max_players = $queryResult->maxPlayers;
         $status->map = $queryResult->map;
-        $status->game = $queryResult->game;
+        $status->game = $server->mod === self::GAME_CSGO ? self::GAME_CSGO : $queryResult->game;
         $status->setPlayersData($this->formatPlayersData($queryResult));
 
         // Store game description for CS2/CS:GO distinction and other metadata
@@ -636,10 +641,10 @@ class MonitoringService
         try {
             $db = app(\Flute\Core\Database\DatabaseConnection::class)->getDbal()->database();
             $prefix = $db->getPrefix();
-            $table = $prefix . 'server_statuses';
+            $table = preg_replace('/[^a-zA-Z0-9_]/', '', $prefix . 'server_statuses');
 
-            $maxId = (int) $db->query("SELECT COALESCE(MAX(id), 0) FROM {$table}")->fetchColumn();
-            $db->execute("ALTER TABLE {$table} AUTO_INCREMENT = " . ($maxId + 10));
+            $maxId = (int) $db->query("SELECT COALESCE(MAX(id), 0) FROM `{$table}`")->fetchColumn();
+            $db->execute("ALTER TABLE `{$table}` AUTO_INCREMENT = " . ($maxId + 10));
         } catch (Throwable) {
         }
     }
@@ -907,6 +912,19 @@ class MonitoringService
         } catch (Exception $e) {
             return 0;
         }
+    }
+
+    private function isCsgoServer(Server $server, ServerStatus $status): bool
+    {
+        if ($server->mod === self::GAME_CSGO) {
+            return true;
+        }
+
+        if ($status->game === self::GAME_CSGO) {
+            return true;
+        }
+
+        return self::isCsgoLegacy($status);
     }
 
     private function fetchAndAddSteamInfo(ServerStatus $status): void

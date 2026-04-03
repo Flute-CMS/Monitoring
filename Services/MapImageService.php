@@ -45,7 +45,10 @@ class MapImageService
 
     protected function getMapImagePath(ServerStatus $status): string
     {
-        return 'assets/img/maps/' . $status->server->mod . '/' . $status->map . '.webp';
+        $mod = preg_replace('/[^a-zA-Z0-9_\-]/', '', $status->server->mod);
+        $map = preg_replace('/[^a-zA-Z0-9_\-]/', '', $status->map ?? '-');
+
+        return 'assets/img/maps/' . $mod . '/' . $map . '.webp';
     }
 
     protected function shouldFetchFromGametracker(ServerStatus $status, ?string $modDir): bool
@@ -98,6 +101,8 @@ class MapImageService
         );
         curl_setopt($ch, CURLOPT_REFERER, 'https://www.gametracker.com/');
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         $imageContent = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -107,9 +112,10 @@ class MapImageService
 
     protected function getDefaultMapImage(string $mod): string
     {
-        $defaultModPath = path('public/assets/img/maps/' . $mod . '/-.webp');
+        $safeMod = preg_replace('/[^a-zA-Z0-9_\-]/', '', $mod);
+        $defaultModPath = path('public/assets/img/maps/' . $safeMod . '/-.webp');
         if (file_exists($defaultModPath)) {
-            return asset('assets/img/maps/' . $mod . '/-.webp');
+            return asset('assets/img/maps/' . $safeMod . '/-.webp');
         }
 
         return asset('assets/img/maps/730/-.webp');

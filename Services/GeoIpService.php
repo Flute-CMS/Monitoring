@@ -15,7 +15,7 @@ class GeoIpService
      */
     public function getCoordinates(string $ip): ?array
     {
-        if ($this->isLocal($ip)) {
+        if (!filter_var($ip, FILTER_VALIDATE_IP) || $this->isLocal($ip)) {
             return null;
         }
 
@@ -185,9 +185,16 @@ class GeoIpService
 
     private function isLocal(string $ip): bool
     {
-        return in_array($ip, ['127.0.0.1', '::1', 'localhost'], true)
-            || str_starts_with($ip, '192.168.')
-            || str_starts_with($ip, '10.')
-            || str_starts_with($ip, '172.');
+        if (in_array($ip, ['127.0.0.1', '::1', 'localhost', '0.0.0.0'], true)) {
+            return true;
+        }
+
+        $filtered = filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
+        );
+
+        return $filtered === false;
     }
 }

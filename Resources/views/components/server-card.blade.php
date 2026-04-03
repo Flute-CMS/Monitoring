@@ -29,7 +29,7 @@
 
 @if ($displayMode === 'mode')
     <div class="monitoring-card-mode {{ $isInactive ? 'monitoring-card-inactive' : '' }}"
-        @if (!isset($hideModal) || !$hideModal) onclick="openModal('server-details-{{ $server->id }}')" @endif>
+        @if (!isset($hideModal) || !$hideModal) onclick="if(!event.target.closest('[data-copy],button,a'))openModal('server-details-{{ $server->id }}')" @endif>
         <div class="card-bg">
             <img src="{{ $mapPreview }}" alt="{{ $map }}" loading="lazy">
         </div>
@@ -37,19 +37,25 @@
         <div class="card-content">
             <div class="card-name">{{ __($server->name) }}</div>
             <div class="card-meta">
-                <span class="card-tag">{{ $map }}</span>
+                <span class="card-tag">
+                    <x-icon path="ph.bold.map-pin-bold" />
+                    {{ $map }}
+                </span>
                 @if ($isCsgoLegacy)
                     <span class="card-tag card-tag--csgo">CS:GO</span>
                 @endif
             </div>
             <div class="card-bottom">
                 @if (!$isInactive && !$hasError)
-                    <svg class="card-ring" viewBox="0 0 36 36">
-                        <circle cx="18" cy="18" r="15" fill="none" stroke-width="3" stroke="var(--transp-1)" />
-                        <circle cx="18" cy="18" r="15" fill="none" stroke-width="3"
-                            stroke="{{ $ringColor }}" stroke-dasharray="{{ $ringCircum }}"
-                            stroke-dashoffset="{{ $ringOffset }}" stroke-linecap="round" />
-                    </svg>
+                    <div class="card-player-ring">
+                        <svg viewBox="0 0 36 36">
+                            <circle cx="18" cy="18" r="15" fill="none" stroke-width="2.5" stroke="var(--transp-1)" />
+                            <circle cx="18" cy="18" r="15" fill="none" stroke-width="2.5"
+                                stroke="{{ $ringColor }}" stroke-dasharray="{{ $ringCircum }}"
+                                stroke-dashoffset="{{ $ringOffset }}" stroke-linecap="round" />
+                        </svg>
+                        <span class="card-player-ring__count">{{ $players }}</span>
+                    </div>
                     <span class="card-players">{{ $players }}<span> / {{ $maxPlayers }}</span></span>
                     @if ($showPing)
                         <span class="card-ping" data-server-ping="{{ $server->id }}"
@@ -64,22 +70,22 @@
                 @endif
             </div>
         </div>
-        <div class="card-hover-actions">
-            <button class="card-copy-btn copyable" data-copy="connect {{ $connect }}" onclick="event.stopPropagation()"
+        <div class="card-toolbar">
+            <button class="card-btn" data-copy="connect {{ $connect }}"
                 data-tooltip="{{ __($trans . '.actions.copy_ip') }}">
-                <x-icon path="ph.regular.copy" />
+                <x-icon path="ph.bold.copy-bold" />
             </button>
             @if (!$isInactive && !$hasError)
-                <a href="{{ $steamConnect }}" class="card-play-btn" onclick="event.stopPropagation()"
+                <a href="{{ $steamConnect }}" class="card-btn card-btn--play"
                     data-tooltip="{{ __($trans . '.actions.play') }}">
-                    <x-icon path="ph.regular.play" />
+                    <x-icon path="ph.bold.play-bold" />
                 </a>
             @endif
         </div>
     </div>
 @else
     <article class="monitoring-card {{ $isInactive ? 'monitoring-card-inactive' : '' }} monitoring-card--{{ $displayMode }}"
-        @if (!isset($hideModal) || !$hideModal) onclick="openModal('server-details-{{ $server->id }}')" @endif>
+        @if (!isset($hideModal) || !$hideModal) onclick="if(!event.target.closest('[data-copy],button,a'))openModal('server-details-{{ $server->id }}')" @endif>
         <div class="card-bg">
             <img src="{{ $mapPreview }}" loading="lazy" alt="{{ $map }} map preview">
         </div>
@@ -87,7 +93,10 @@
         <div class="card-content">
             <h3 class="card-name">{{ __($server->name) }}</h3>
             <div class="card-meta">
-                <span class="card-tag">{{ $map }}</span>
+                <span class="card-tag">
+                    <x-icon path="ph.bold.map-pin-bold" />
+                    {{ $map }}
+                </span>
                 @if ($isCsgoLegacy)
                     <span class="card-tag card-tag--csgo">CS:GO</span>
                 @endif
@@ -95,15 +104,17 @@
                     <span class="card-tag card-tag--off">{{ __($trans . '.offline') }}</span>
                 @endif
             </div>
-
             <div class="card-bottom">
                 @if (!$isInactive && !$hasError)
-                    <svg class="card-ring" viewBox="0 0 36 36">
-                        <circle cx="18" cy="18" r="15" fill="none" stroke-width="3" stroke="var(--transp-1)" />
-                        <circle cx="18" cy="18" r="15" fill="none" stroke-width="3"
-                            stroke="{{ $ringColor }}" stroke-dasharray="{{ $ringCircum }}"
-                            stroke-dashoffset="{{ $ringOffset }}" stroke-linecap="round" />
-                    </svg>
+                    <div class="card-player-ring">
+                        <svg viewBox="0 0 36 36">
+                            <circle cx="18" cy="18" r="15" fill="none" stroke-width="2.5" stroke="var(--transp-1)" />
+                            <circle cx="18" cy="18" r="15" fill="none" stroke-width="2.5"
+                                stroke="{{ $ringColor }}" stroke-dasharray="{{ $ringCircum }}"
+                                stroke-dashoffset="{{ $ringOffset }}" stroke-linecap="round" />
+                        </svg>
+                        <span class="card-player-ring__count">{{ $players }}</span>
+                    </div>
                     <span class="card-players">{{ $players }}<span> / {{ $maxPlayers }}</span></span>
                     @if ($showPing)
                         <span class="card-ping" data-server-ping="{{ $server->id }}"
@@ -121,18 +132,17 @@
                 @endif
             </div>
         </div>
-
-        @if (!$isInactive && !$hasError)
-            <a href="{{ $steamConnect }}" class="card-play-btn" onclick="event.stopPropagation()"
-                data-tooltip="{{ __($trans . '.actions.play') }}">
-                <x-icon path="ph.regular.play" />
-            </a>
-        @endif
-        <div class="card-hover-actions">
-            <button class="card-copy-btn copyable" data-copy="connect {{ $connect }}" onclick="event.stopPropagation()"
+        <div class="card-toolbar">
+            <button class="card-btn" data-copy="connect {{ $connect }}"
                 data-tooltip="{{ __($trans . '.actions.copy_ip') }}">
-                <x-icon path="ph.regular.copy" />
+                <x-icon path="ph.bold.copy-bold" />
             </button>
+            @if (!$isInactive && !$hasError)
+                <a href="{{ $steamConnect }}" class="card-btn card-btn--play"
+                    data-tooltip="{{ __($trans . '.actions.play') }}">
+                    <x-icon path="ph.bold.play-bold" />
+                </a>
+            @endif
         </div>
     </article>
 @endif

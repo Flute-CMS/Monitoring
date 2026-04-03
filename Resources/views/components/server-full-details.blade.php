@@ -70,12 +70,10 @@
                 @endif
             </div>
 
-            <div class="server-modal-ip">
-                <span class="copyable" data-copy="{{ $server->getConnectionString() }}"
-                    data-tooltip="{{ __($trans . '.actions.copy_ip') }}"
-                    onclick="notyf.success('{{ __($trans . '.actions.copy_ip_success') }}')">
-                    {{ $server->getConnectionString() }}
-                </span>
+            <div class="server-modal-ip"
+                data-copy="connect {{ $server->getConnectionString() }}"
+                data-tooltip="{{ __($trans . '.actions.copy_ip') }}">
+                <span>{{ $server->getConnectionString() }}</span>
                 <x-icon path="ph.regular.copy" />
             </div>
 
@@ -136,7 +134,7 @@
                                 $isT = $player['team'] == 2;
                                 $faceitInfo = $player['faceit_info'] ?? null;
                                 $fallbackAvatar = asset(config('profile.default_avatar'));
-                                $pingVal = $player['ping'] ?? 0;
+                                $pingVal = max(1, (int) ($player['ping'] ?? 0));
                                 $pingClass = $pingVal < 60 ? 'good' : ($pingVal < 120 ? 'medium' : 'bad');
                             @endphp
                             <tr class="player-row {{ $isT ? 't-row' : 'ct-row' }}" data-team="{{ $isT ? 't' : 'ct' }}">

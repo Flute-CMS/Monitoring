@@ -125,7 +125,7 @@ class MonitoringPingService
         if ($socket) {
             fclose($socket);
 
-            return (int) round(($end - $start) / 1_000_000);
+            return max(1, (int) round(($end - $start) / 1_000_000));
         }
 
         return null;
@@ -157,7 +157,7 @@ class MonitoringPingService
                 $data = @fread($socket, 32);
 
                 if ($data !== false && $data !== '') {
-                    return (int) round(($end - $start) / 1_000_000);
+                    return max(1, (int) round(($end - $start) / 1_000_000));
                 }
             }
         } finally {
@@ -203,6 +203,7 @@ class MonitoringPingService
             CURLOPT_CONNECTTIMEOUT => self::PING_TIMEOUT,
             CURLOPT_TIMEOUT => self::PING_TIMEOUT,
             CURLOPT_HTTPHEADER => ['Accept: application/json'],
+            CURLOPT_FOLLOWLOCATION => false,
         ]);
 
         $start = hrtime(true);
@@ -213,7 +214,7 @@ class MonitoringPingService
         curl_close($ch);
 
         if ($httpCode > 0 && $httpCode < 400) {
-            return (int) round(($end - $start) / 1_000_000);
+            return max(1, (int) round(($end - $start) / 1_000_000));
         }
 
         return null;

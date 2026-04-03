@@ -159,7 +159,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 700;
     color: #fff;
@@ -233,7 +232,6 @@
 
 .server-row-ip {
     font-size: 11px;
-    font-family: var(--font-mono);
     color: rgba(255, 255, 255, 0.3);
     cursor: pointer;
     transition: color var(--transition);
@@ -283,7 +281,7 @@
 }
 
 .server-ping-badge {
-    @include monitoring-glass-pill-surface(rgba(255, 255, 255, 0.7), true);
+    @include monitoring-glass-pill-surface(rgba(255, 255, 255, 0.7));
 
     svg,
     .icon {

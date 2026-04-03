@@ -25,7 +25,6 @@
     }
 
     &__num {
-        font-family: var(--font-mono);
         font-size: var(--h2);
         font-weight: 700;
         letter-spacing: -0.04em;
@@ -48,7 +47,6 @@
     }
 
     &__pct {
-        font-family: var(--font-mono);
         font-size: var(--h5);
         font-weight: 700;
         color: var(--text-300);
