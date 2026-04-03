@@ -83,6 +83,16 @@
         background: rgba(255, 255, 255, 0.1);
         backdrop-filter: blur(4px);
         color: rgba(255, 255, 255, 0.8);
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+
+        svg,
+        .icon {
+            width: 10px;
+            height: 10px;
+            opacity: 0.7;
+        }
 
         &--off {
             color: $monitoring-offline;
@@ -103,6 +113,31 @@
         padding-top: 6px;
     }
 
+    .card-player-ring {
+        position: relative;
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+
+        svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        &__count {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.03em;
+        }
+    }
+
     .card-ring {
         width: 22px;
         height: 22px;
@@ -115,7 +150,6 @@
     }
 
     .card-players {
-        font-family: var(--font-mono);
         font-size: var(--h6);
         font-weight: 700;
         letter-spacing: -0.02em;
@@ -140,7 +174,6 @@
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        font-family: var(--font-mono);
         font-size: var(--small);
         font-weight: 600;
         color: var(--text-300);
@@ -152,79 +185,54 @@
         }
     }
 
-    .card-hover-actions {
+    .card-toolbar {
         position: absolute;
-        top: 10px;
-        right: 10px;
+        bottom: 0;
+        right: 0;
         z-index: 4;
         display: flex;
-        gap: 4px;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 16px;
     }
 
-    .card-copy-btn {
-        width: 32px;
-        height: 32px;
+    .card-btn {
+        @extend .blur-bg;
+
+        width: 38px;
+        height: 38px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 100px;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: rgba(255, 255, 255, 0.6);
-        cursor: pointer;
-        transition: var(--transition);
-
-        &:hover {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
-            border-color: rgba(255, 255, 255, 0.25);
-        }
-
-        svg,
-        .icon {
-            width: 14px;
-            height: 14px;
-        }
-    }
-
-    .card-play-btn {
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 100px;
-        background: var(--accent);
-        color: var(--accent-950);
-        border: 1px solid transparent;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
         cursor: pointer;
         text-decoration: none;
-        line-height: 1;
-        box-sizing: border-box;
         transition: var(--transition);
 
         &:hover {
-            opacity: 0.85;
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.2);
         }
 
         svg,
         .icon {
-            width: 14px;
-            height: 14px;
+            width: 17px;
+            height: 17px;
         }
-    }
 
-    &:not(.monitoring-card-mode) .card-play-btn {
-        position: absolute;
-        bottom: 12px;
-        right: 12px;
-        z-index: 4;
-        width: 34px;
-        height: 34px;
+        &--play {
+            background: var(--accent);
+            color: var(--accent-950);
+            border-color: transparent;
+
+            &:hover {
+                opacity: 0.85;
+            }
+        }
     }
 
     &-inactive {
@@ -252,11 +260,29 @@
         font-size: var(--p-small);
     }
 
-    .card-play-btn {
-        width: 30px;
-        height: 30px;
-        bottom: 10px;
-        right: 10px;
+    .card-player-ring {
+        width: 28px;
+        height: 28px;
+
+        &__count {
+            font-size: 9px;
+        }
+    }
+
+    .card-toolbar {
+        padding: 10px 12px;
+    }
+
+    .card-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+
+        svg,
+        .icon {
+            width: 15px;
+            height: 15px;
+        }
     }
 }
 
@@ -276,16 +302,29 @@
         margin-top: 2px;
     }
 
-    .card-play-btn {
+    .card-player-ring {
+        width: 24px;
+        height: 24px;
+
+        &__count {
+            font-size: 8px;
+        }
+    }
+
+    .card-toolbar {
+        padding: 8px 10px;
+        gap: 4px;
+    }
+
+    .card-btn {
         width: 28px;
         height: 28px;
-        bottom: 8px;
-        right: 8px;
+        border-radius: 7px;
 
         svg,
         .icon {
-            width: 10px;
-            height: 10px;
+            width: 13px;
+            height: 13px;
         }
     }
 }

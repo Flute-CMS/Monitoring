@@ -149,8 +149,8 @@ class MonitoringTestScreen extends Screen
         $mod = '730';
 
         if (!empty($customIp)) {
-            $ip = $customIp;
-            $port = $customPort > 0 ? $customPort : 27015;
+            $ip = filter_var($customIp, FILTER_VALIDATE_IP) ? $customIp : '';
+            $port = $customPort > 0 && $customPort <= 65535 ? $customPort : 27015;
         } elseif ($serverId) {
             $server = rep(Server::class)->findOne(['id' => (int) $serverId]);
             if ($server) {

@@ -240,7 +240,12 @@ class MonitoringSettingsScreen extends Screen
             @mkdir($configDir, 0o755, true);
         }
 
-        $written = @file_put_contents($configPath, '<?php return ' . var_export($config, true) . ";\n");
+        $jsonFlags = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR;
+        $jsonConfig = json_encode($config, $jsonFlags);
+        $written = @file_put_contents(
+            $configPath,
+            "<?php\n\nreturn json_decode('" . addcslashes($jsonConfig, "'\\") . "', true);\n",
+        );
 
         if (function_exists('opcache_invalidate')) {
             @opcache_invalidate($configPath, true);

@@ -79,6 +79,12 @@ class MonitoringController extends BaseController
         $pings = $pingService->getAllPings();
 
         if (empty($pings)) {
+            $lockKey = 'monitoring_pings_measuring';
+            if (cache()->get($lockKey)) {
+                return $this->json([]);
+            }
+            cache()->set($lockKey, true, 30);
+
             $cacheService = app(\Flute\Modules\Monitoring\Services\MonitoringCacheService::class);
             $servers = $cacheService->getEnabledServers();
 
@@ -94,6 +100,7 @@ class MonitoringController extends BaseController
             if (!empty($pings)) {
                 cache()->set('monitoring_pings', $pings, 300);
             }
+            cache()->delete($lockKey);
         }
 
         return $this->json($pings);

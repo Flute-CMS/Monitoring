@@ -30,7 +30,7 @@
             $mapPreview = $showActions ? $service->getMapPreview($status) : null;
         @endphp
         <div class="server-row {{ $statusClass }}"
-            onclick="openModal('server-details-{{ $server->id }}')">
+            onclick="if(!event.target.closest('[data-copy],button,a'))openModal('server-details-{{ $server->id }}')">
 
             @if ($mapPreview)
                 <div class="server-row-bg">
@@ -63,10 +63,9 @@
                                 <span class="server-game-badge">CS:GO</span>
                             @endif
                         </h6>
-                        <span class="server-row-ip copyable"
+                        <span class="server-row-ip"
                             data-tooltip="{{ __($trans . '.actions.copy_ip') }}"
-                            data-copy="{{ $server->getConnectionString() }}"
-                            onclick="event.stopPropagation(); notyf.success('{{ __($trans . '.actions.copy_ip_success') }}')">
+                            data-copy="{{ $server->getConnectionString() }}">
                             {{ $server->getConnectionString() }}
                             · {{ $players }}/{{ $maxPlayers }}
                         </span>
@@ -99,7 +98,7 @@
 
             @if ($showActions)
                 <button class="server-play-btn"
-                    onclick="event.stopPropagation(); navigator.clipboard?.writeText('connect {{ $server->getConnectionString() }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'"
+                    onclick="navigator.clipboard?.writeText('connect {{ $server->getConnectionString() }}').catch(()=>{}); window.location='steam://connect/{{ $server->ip }}:{{ $server->port }}'"
                     data-tooltip="{{ __($trans . '.actions.play') }}">
                     <x-icon path="ph.regular.play" />
                 </button>
