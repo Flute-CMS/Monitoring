@@ -391,7 +391,8 @@ class MonitoringService
         }
 
         $status->online = true;
-        $status->players = $queryResult->players;
+        $bots = (int) ($queryResult->additional['bots'] ?? 0);
+        $status->players = max(0, $queryResult->players - $bots);
         $status->max_players = $queryResult->maxPlayers;
         $status->map = $queryResult->map;
         $status->game = $server->mod === self::GAME_CSGO ? self::GAME_CSGO : $queryResult->game;
