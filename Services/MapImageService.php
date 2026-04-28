@@ -45,7 +45,13 @@ class MapImageService
 
     protected function getMapImagePath(ServerStatus $status): string
     {
-        $mod = preg_replace('/[^a-zA-Z0-9_\-]/', '', $status->server->mod);
+        $mod = $status->server->mod;
+
+        if ($mod === 'xash3d') {
+            $mod = in_array($status->game, ['cstrike', 'czero'], true) ? '10' : null;
+        }
+
+        $mod = preg_replace('/[^a-zA-Z0-9_\-]/', '', $mod ?? '');
         $map = preg_replace('/[^a-zA-Z0-9_\-]/', '', $status->map ?? '-');
 
         return 'assets/img/maps/' . $mod . '/' . $map . '.webp';
