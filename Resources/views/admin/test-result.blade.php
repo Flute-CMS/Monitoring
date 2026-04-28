@@ -162,13 +162,19 @@
                 </div>
                 <div class="mtest__players mtest__players--simple">
                     @foreach (array_slice($playersData, 0, 20) as $player)
+                        @php
+                            // Normalise keys — formatPlayersData stores Name/Score/Time (capital),
+                            // but some drivers return name/score/time (lowercase)
+                            $playerName  = $player['Name']  ?? $player['name']  ?? null;
+                            $playerScore = $player['Score'] ?? $player['score'] ?? null;
+                            $playerTime  = $player['Time']  ?? $player['time']  ?? null;
+                        @endphp
                         <div class="mtest__player mtest__player--simple">
-                            <span class="mtest__player-name">{{ $player['name'] ?? 'Unknown' }}</span>
-                            @if (isset($player['score']))
-                                <span class="mtest__player-score">{{ $player['score'] }}</span>
-                            @endif
-                            @if (isset($player['time']))
-                                <span class="mtest__player-time">{{ gmdate('H:i:s', $player['time'] ?? 0) }}</span>
+                            <span class="mtest__player-name">
+                                {{ $playerName ?? 'Unknown' }}@if ($playerScore !== null) <span class="mtest__player-score">({{ $playerScore }})</span>@endif
+                            </span>
+                            @if ($playerTime !== null)
+                                <span class="mtest__player-time">{{ gmdate('H:i:s', (int) $playerTime) }}</span>
                             @endif
                         </div>
                     @endforeach
@@ -483,10 +489,20 @@
 
 .mtest__players--simple .mtest__player {
     border-left: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .mtest__player--simple {
     padding: 0.5rem 1rem;
+}
+
+.mtest__player-stats-simple {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-shrink: 0;
 }
 
 .mtest__player-score,
@@ -494,6 +510,7 @@
     font-size: 0.8125rem;
     color: var(--text-400);
     font-family: var(--font-mono, monospace);
+    text-align: right;
 }
 
 .mtest__more {

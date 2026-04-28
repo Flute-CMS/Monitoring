@@ -96,6 +96,7 @@ class MonitoringTestScreen extends Screen
                             'auto' => __('monitoring.admin.protocol_auto'),
                             'source' => 'Source Engine',
                             'goldsrc' => 'GoldSource (CS 1.6)',
+                            'xash3d' => 'Xash3D FWGS Engine',
                             'minecraft' => 'Minecraft',
                             'samp' => 'SA-MP',
                             'gta5' => 'GTA V (FiveM/RageMP)',
@@ -175,6 +176,7 @@ class MonitoringTestScreen extends Screen
             $protocolMap = [
                 'source' => '730',
                 'goldsrc' => '10',
+                'xash3d' => 'xash3d',
                 'minecraft' => 'minecraft',
                 'samp' => 'samp',
                 'gta5' => 'gta5',

@@ -19,7 +19,7 @@ class MonitoringPingService
     private const PING_TIMEOUT = 2;
 
     /** @var string[] Game mods that have no TCP listener — must use UDP probe */
-    private const UDP_ONLY_MODS = ['samp', 'minecraft_bedrock'];
+    private const UDP_ONLY_MODS = ['samp', 'minecraft_bedrock', 'xash3d'];
 
     /** @var string[] Game mods queried via HTTP */
     private const HTTP_MODS = ['gta5', 'fivem', 'redm'];
@@ -180,6 +180,11 @@ class MonitoringPingService
             $header .= chr(($port >> 8) & 0xFF);
 
             return $header . 'i';
+        }
+
+        // Xash3D FWGS — "info 49" out-of-band query
+        if ($mod === 'xash3d') {
+            return "\xFF\xFF\xFF\xFFinfo 49";
         }
 
         // Minecraft Bedrock (RakNet Unconnected Ping)
